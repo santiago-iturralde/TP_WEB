@@ -18,7 +18,7 @@ func main() {
    `
 
    //defino el manejador "HANDLER" de la ruta "/"
-   http.HandleFunc("/", func(w http.ResponseWriter, r http.Request) {
+   http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
     w.Header().Set("Content-Type", "text/html, charset=utf-8")
     fmt.Fprint(w, htmlContent)//escribo el contenido del HTML en la rta
    })
@@ -31,14 +31,16 @@ func main() {
    if err != nil {
        fmt.Printf("Error al iniciar el servidor: %s\n", err)
    }
-}
+
 
 //defino el manejador "HANDLER" de la ruta "/"
-   http.HandleFunc("/", func(w http.ResponseWriter, rhttp.Request) {
+   http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
        if r.URL.Path != "/" {
-           http.NotFound(w, r) devuelvo un error 404
+           http.NotFound(w, r) 
            return
        }
        w.Header().Set("Content-Type", "text/html, charset=utf-8")
        fmt.Fprint(w, htmlContent) 
    })
+
+}
