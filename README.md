@@ -3,8 +3,20 @@
 ## Descripción del Proyecto
 Este proyecto es una aplicación web para la gestión de un catálogo de productos de e-commerce . Se enfoca en un panel de administración que permite realizar operaciones CRUD sobre artículos de inventario.
 
-**Entidad Principal:** Producto  
-**Atributos:** ID, Nombre, Descripción, Precio, Stock y Categoría.
+**Entidad** Producto  
+**Atributos:** idProducto, Nombre, Descripción, Precio, Stock, Categoría
+
+**Entidad** Carrito
+**Atributos:** idCarrito, idProductosCarrito, total 
+
+**Entidad** ProductosCarrito
+**Atributos:** idProductosCarrito, idProducto, idCarrito, cantidad
+
+**Entidad** Usuario 
+**Atributos:** idUsuario, email, contraseña
+
+
+
 
 ## Requisitos del Entorno
 Para el correcto funcionamiento de esta aplicación, se requiere:
