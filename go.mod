@@ -1,3 +1,3 @@
 module TP_WEB
 
-go 1.23
+go 1.22.2
