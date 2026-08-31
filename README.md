@@ -6,13 +6,13 @@ Este proyecto es una aplicación web para la gestión de un catálogo de product
 **Entidad** Producto  
 **Atributos:** idProducto, Nombre, Descripción, Precio, Stock, Categoría
 
-**Entidad** Carrito
+**Entidad** Carrito  
 **Atributos:** idCarrito, idProductosCarrito, total 
 
-**Entidad** ProductosCarrito
+**Entidad** ProductosCarrito  
 **Atributos:** idProductosCarrito, idProducto, idCarrito, cantidad
 
-**Entidad** Usuario 
+**Entidad** Usuario   
 **Atributos:** idUsuario, email, contraseña
 
 ## Requisitos del Entorno
