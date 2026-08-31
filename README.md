@@ -32,14 +32,17 @@ Siga estos pasos para descargar e iniciar el servidor en su entorno local:
 1. Clone el repositorio en su computadora ejecutando en la terminal:
    ```bash
    git clone https://github.com/santiago-iturralde/TP_WEB.git
+   ```
   
 2. Ingrese a la carpeta del proyecto:
    ```bash
    cd TP_WEB
+   ```
 
 3. Ejecute el siguiente comando para iniciar el servidor:
    ```bash
    go run main.go
+   ```
 
 4. Una vez iniciado, abra su navegador web y acceda a:
     http://localhost:8080
