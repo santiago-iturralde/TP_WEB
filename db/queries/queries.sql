@@ -33,22 +33,22 @@ WHERE id_producto = $1;
 
 -- CONSULTAS PARA LA ENTIDAD: USUARIO-----------------------------------------------------
 -- name: CreateUsuario :one
-INSERT INTO usuarios (email, contrasena)
+INSERT INTO usuario (email, contrasena)
 VALUES ($1, $2)
 RETURNING id_usuario, email, contrasena;
 
 -- name: GetUsuario :one
 SELECT id_usuario, email, contrasena
-FROM usuarios
+FROM usuario
 WHERE id_usuario = $1;
 
 -- name: GetUsuarioByEmail :one
 SELECT id_usuario, email, contrasena
-FROM usuarios
+FROM usuario
 WHERE email = $1;
 
 -- name: DeleteUsuario :exec
-DELETE FROM usuarios
+DELETE FROM usuario
 WHERE id_usuario = $1;
 
 
@@ -82,5 +82,4 @@ WHERE id_carrito = $1;
 
 
 -- CONSULTAS PARA LA ENTIDAD: PRODUCTOS_CARRITO----------------------------------------------------------------------
-
 
