@@ -5,7 +5,7 @@ CREATE TABLE producto (
     precio_prod DECIMAL(10, 2) NOT NULL,
     stock_prod INT NOT NULL DEFAULT 0,
     categoria VARCHAR(100) NOT NULL
-)
+);
 
 
 CREATE TABLE usuario (
