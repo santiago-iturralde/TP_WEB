@@ -64,6 +64,32 @@ func (q *Queries) CreateProducto(ctx context.Context, arg CreateProductoParams) 
 	return i, err
 }
 
+const createProductoCarrito = `-- name: CreateProductoCarrito :one
+
+INSERT INTO productos_carrito (id_producto, id_carrito, cantidad)
+VALUES ($1, $2, $3)
+RETURNING id_productos_carrito, id_producto, id_carrito, cantidad
+`
+
+type CreateProductoCarritoParams struct {
+	IDProducto int32 `json:"id_producto"`
+	IDCarrito  int32 `json:"id_carrito"`
+	Cantidad   int32 `json:"cantidad"`
+}
+
+// CONSULTAS PARA LA ENTIDAD: PRODUCTOS_CARRITO----------------------------------------------------------------------
+func (q *Queries) CreateProductoCarrito(ctx context.Context, arg CreateProductoCarritoParams) (ProductosCarrito, error) {
+	row := q.db.QueryRowContext(ctx, createProductoCarrito, arg.IDProducto, arg.IDCarrito, arg.Cantidad)
+	var i ProductosCarrito
+	err := row.Scan(
+		&i.IDProductosCarrito,
+		&i.IDProducto,
+		&i.IDCarrito,
+		&i.Cantidad,
+	)
+	return i, err
+}
+
 const createUsuario = `-- name: CreateUsuario :one
 INSERT INTO usuario (email, contrasena)
 VALUES ($1, $2)
@@ -100,6 +126,16 @@ WHERE id_producto = $1
 
 func (q *Queries) DeleteProducto(ctx context.Context, idProducto int32) error {
 	_, err := q.db.ExecContext(ctx, deleteProducto, idProducto)
+	return err
+}
+
+const deleteProductoCarrito = `-- name: DeleteProductoCarrito :exec
+DELETE FROM productos_carrito
+WHERE id_productos_carrito = $1
+`
+
+func (q *Queries) DeleteProductoCarrito(ctx context.Context, idProductosCarrito int32) error {
+	_, err := q.db.ExecContext(ctx, deleteProductoCarrito, idProductosCarrito)
 	return err
 }
 
@@ -144,6 +180,58 @@ func (q *Queries) GetProducto(ctx context.Context, idProducto int32) (Producto, 
 		&i.Categoria,
 	)
 	return i, err
+}
+
+const getProductoCarrito = `-- name: GetProductoCarrito :one
+SELECT id_productos_carrito, id_producto, id_carrito, cantidad
+FROM productos_carrito
+WHERE id_productos_carrito = $1
+`
+
+func (q *Queries) GetProductoCarrito(ctx context.Context, idProductosCarrito int32) (ProductosCarrito, error) {
+	row := q.db.QueryRowContext(ctx, getProductoCarrito, idProductosCarrito)
+	var i ProductosCarrito
+	err := row.Scan(
+		&i.IDProductosCarrito,
+		&i.IDProducto,
+		&i.IDCarrito,
+		&i.Cantidad,
+	)
+	return i, err
+}
+
+const getProductosByCarrito = `-- name: GetProductosByCarrito :many
+SELECT id_productos_carrito, id_producto, id_carrito, cantidad
+FROM productos_carrito
+WHERE id_carrito = $1
+`
+
+func (q *Queries) GetProductosByCarrito(ctx context.Context, idCarrito int32) ([]ProductosCarrito, error) {
+	rows, err := q.db.QueryContext(ctx, getProductosByCarrito, idCarrito)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ProductosCarrito
+	for rows.Next() {
+		var i ProductosCarrito
+		if err := rows.Scan(
+			&i.IDProductosCarrito,
+			&i.IDProducto,
+			&i.IDCarrito,
+			&i.Cantidad,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
 }
 
 const getUsuario = `-- name: GetUsuario :one
@@ -284,4 +372,28 @@ func (q *Queries) UpdateProducto(ctx context.Context, arg UpdateProductoParams) 
 		arg.Categoria,
 	)
 	return err
+}
+
+const updateProductoCarrito = `-- name: UpdateProductoCarrito :one
+UPDATE productos_carrito
+SET cantidad = $2
+WHERE id_productos_carrito = $1
+RETURNING id_productos_carrito, id_producto, id_carrito, cantidad
+`
+
+type UpdateProductoCarritoParams struct {
+	IDProductosCarrito int32 `json:"id_productos_carrito"`
+	Cantidad           int32 `json:"cantidad"`
+}
+
+func (q *Queries) UpdateProductoCarrito(ctx context.Context, arg UpdateProductoCarritoParams) (ProductosCarrito, error) {
+	row := q.db.QueryRowContext(ctx, updateProductoCarrito, arg.IDProductosCarrito, arg.Cantidad)
+	var i ProductosCarrito
+	err := row.Scan(
+		&i.IDProductosCarrito,
+		&i.IDProducto,
+		&i.IDCarrito,
+		&i.Cantidad,
+	)
+	return i, err
 }
