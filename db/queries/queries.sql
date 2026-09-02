@@ -83,3 +83,31 @@ WHERE id_carrito = $1;
 
 -- CONSULTAS PARA LA ENTIDAD: PRODUCTOS_CARRITO----------------------------------------------------------------------
 
+-- name: CreateProductoCarrito :one
+INSERT INTO productos_carrito (id_producto, id_carrito, cantidad)
+VALUES ($1, $2, $3)
+RETURNING id_productos_carrito, id_producto, id_carrito, cantidad;
+
+
+-- name: GetProductoCarrito :one
+SELECT id_productos_carrito, id_producto, id_carrito, cantidad
+FROM productos_carrito
+WHERE id_productos_carrito = $1;
+
+
+-- name: GetProductosByCarrito :many
+SELECT id_productos_carrito, id_producto, id_carrito, cantidad
+FROM productos_carrito
+WHERE id_carrito = $1;
+
+
+-- name: UpdateProductoCarrito :one
+UPDATE productos_carrito
+SET cantidad = $2
+WHERE id_productos_carrito = $1
+RETURNING id_productos_carrito, id_producto, id_carrito, cantidad;
+
+
+-- name: DeleteProductoCarrito :exec
+DELETE FROM productos_carrito
+WHERE id_productos_carrito = $1;
