@@ -18,7 +18,7 @@ func main() {
 	})
 
 	port := ":8080"
-	fmt.Printf("Servidor escuchando en http://localhost%s\n", port)
+	fmt.Printf("Servidor TP2 escuchando en http://localhost%s\n", port)
 
 	if err := http.ListenAndServe(port, nil); err != nil {
 		fmt.Printf("Error al iniciar el servidor: %s\n", err)
