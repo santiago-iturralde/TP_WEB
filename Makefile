@@ -1,8 +1,8 @@
 APP_NAME := TP_WEB
-DB_URL := postgres://postgres:postgres@localhost:5432/tp_web?sslmode=disable
+DB_URL := postgres://${DB_USER}:${DB_PASSWORD}@localhost:${DB_PORT}/${DB_NAME}?sslmode=disable
 
 
-.PHONY: all run generate build test clean
+.PHONY: all run generate build test clean test
 
 
 all: build

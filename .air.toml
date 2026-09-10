@@ -1,0 +1,7 @@
+root = "."
+tmp_dir = "tmp"
+[build]
+cmd = "make build"
+entrypoint = ["./tmp/TP_WEB"]
+include_ext = ["go", "sql"]
+exclude_dir = ["tmp", "vendor"]
