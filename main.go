@@ -3,7 +3,9 @@ package main
 import (
 	"database/sql"
 	"fmt"
+	"io"
 	"log"
+	"log/slog"
 	"net/http"
 	"os"
 	"strings"
@@ -13,18 +15,32 @@ import (
 	db "TP_WEB/db/sqlc"
 	"TP_WEB/handler"
 	"TP_WEB/repository"
+	"TP_WEB/service"
 )
 
 func main() {
+	logFile, err := os.OpenFile("app.log", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0600)
+	if err != nil {
+		log.Fatalf("No se pudo abrir app.log: %s", err)
+	}
+	defer logFile.Close()
+	slog.SetDefault(slog.New(slog.NewTextHandler(io.MultiWriter(os.Stderr, logFile), nil)))
+
+	// Abre la conexion con la base de datos PostgreSQL usando la URL de conexión
 	database, err := sql.Open("pgx", databaseURL())
+
 	if err != nil {
 		log.Fatalf("Error al configurar la base de datos: %s", err)
 	}
+
+	// Cierra la conexión a la base de datos al finalizar la ejecución del programa
 	defer database.Close()
 
+	// Crea las consultas SQL a partir de la conexión a la base de datos
 	queries := db.New(database)
 	usuarioRepo := repository.NewUsuarioRepository(queries)
-	usuarioHandler := handler.NewUsuarioHandler(usuarioRepo, "static/usuario.html")
+	usuarioService := service.NewUsuarioService(usuarioRepo)
+	usuarioHandler := handler.NewUsuarioHandler(usuarioService, "static/usuario.html")
 
 	mux := http.NewServeMux()
 	mux.Handle("/usuario", usuarioHandler)
@@ -38,16 +54,14 @@ func main() {
 			return
 		}
 
-		w.Header().Set("Content-Type", "text/html; charset=utf-8")
-
-		http.ServeFile(w, r, "static/index.html")
+		http.Redirect(w, r, "/usuario", http.StatusFound)
 	})
 
 	port := ":8080"
-	fmt.Printf("Servidor TP2 escuchando en http://localhost%s\n", port)
+	slog.Info("Servidor TP2 iniciado", "url", "http://localhost"+port+"/usuario")
 
 	if err := http.ListenAndServe(port, mux); err != nil {
-		fmt.Printf("Error al iniciar el servidor: %s\n", err)
+		slog.Error("Error al iniciar el servidor", "error", err)
 	}
 }
 

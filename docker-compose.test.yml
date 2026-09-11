@@ -1,0 +1,20 @@
+services:
+  database:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: test_password
+      POSTGRES_DB: perfumes_test
+    ports:
+      - "127.0.0.1:${TEST_DB_PORT:-5433}:5432"
+    volumes:
+      - test_data:/var/lib/postgresql/data
+    healthcheck:
+      # TCP evita detectar el servidor temporal de inicialización (solo socket Unix).
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U postgres -d perfumes_test"]
+      interval: 1s
+      timeout: 5s
+      retries: 60
+
+volumes:
+  test_data:

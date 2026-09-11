@@ -3,20 +3,20 @@ package handler
 import (
 	"encoding/json"
 	"errors"
+	"log/slog"
 	"net/http"
-	"net/mail"
 	"strings"
 
-	"TP_WEB/repository"
+	"TP_WEB/service"
 )
 
 type UsuarioHandler struct {
-	repository repository.UsuarioRepository
-	formPath   string
+	service  *service.UsuarioService
+	formPath string
 }
 
-func NewUsuarioHandler(repo repository.UsuarioRepository, formPath string) *UsuarioHandler {
-	return &UsuarioHandler{repository: repo, formPath: formPath}
+func NewUsuarioHandler(usuarioService *service.UsuarioService, formPath string) *UsuarioHandler {
+	return &UsuarioHandler{service: usuarioService, formPath: formPath}
 }
 
 func (h *UsuarioHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
@@ -39,22 +39,17 @@ func (h *UsuarioHandler) mostrarFormulario(w http.ResponseWriter, r *http.Reques
 func (h *UsuarioHandler) crearUsuario(w http.ResponseWriter, r *http.Request) {
 	email, contrasena, err := datosUsuario(r)
 	if err != nil {
+		slog.WarnContext(r.Context(), "alta de usuario rechazada", "motivo", "datos_invalidos")
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 
-	email = strings.ToLower(strings.TrimSpace(email))
-	address, err := mail.ParseAddress(email)
-	if err != nil || address.Address != email {
-		http.Error(w, "el email no es valido", http.StatusBadRequest)
+	usuario, err := h.service.Crear(r.Context(), email, contrasena)
+	if errors.Is(err, service.ErrEmailInvalido) || errors.Is(err, service.ErrContrasenaCorta) {
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
-	if len(contrasena) < 8 {
-		http.Error(w, "la contrasena debe tener al menos 8 caracteres", http.StatusBadRequest)
-		return
-	}
-	usuario, err := h.repository.Crear(r.Context(), email, contrasena)
-	if errors.Is(err, repository.ErrEmailExistente) {
+	if errors.Is(err, service.ErrEmailExistente) {
 		http.Error(w, err.Error(), http.StatusConflict)
 		return
 	}

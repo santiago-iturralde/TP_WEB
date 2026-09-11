@@ -1,48 +1,45 @@
-include .env
-export DB_SERVICE
+-include .env
+
+DB_USER ?= postgres
+DB_PASSWORD ?= 123456
+DB_NAME ?= perfumes_db
+DB_PORT ?= 5432
+DB_HOST ?= localhost
+TEST_DB_PORT ?= 5433
+export DB_USER DB_PASSWORD DB_NAME DB_PORT DB_HOST TEST_DB_PORT
 
 APP_NAME := TP_WEB
 DB_URL := postgres://$(DB_USER):$(DB_PASSWORD)@localhost:$(DB_PORT)/$(DB_NAME)?sslmode=disable
+SQLC_VERSION := v1.31.1
 
 
-.PHONY: all run generate build test clean test
+.PHONY: all run generate build test clean db-up db-down db-init
 
 
 all: build
 
 
-run:	
-	@air
+run: db-up
+	@go run .
+
+db-up:
+	@docker compose -p tp_web -f docker-compose.yml up -d --wait --wait-timeout 60
+
+db-down:
+	@docker compose -p tp_web -f docker-compose.yml down
+
+db-init: db-up
+	@docker compose -p tp_web -f docker-compose.yml exec -T database psql -v ON_ERROR_STOP=1 -U $(DB_USER) -d $(DB_NAME) < db/schema/schema.sql
 
 generate:
-	@sqlc generate
+	@go run github.com/sqlc-dev/sqlc/cmd/sqlc@$(SQLC_VERSION) generate
 
 build: generate
 	@mkdir -p tmp
 	@go build -o tmp/$(APP_NAME) .
 
-test:
-	@echo "Limpiando entorno..."
-	docker compose  down -v
-
-	@echo "Levantando PostgreSQL..."
-	docker compose up -d
-
-	@echo "Esperando PostgreSQL..."
-	@until docker compose exec -T $(DB_SERVICE) \
-	psql -U $(DB_USER) -d $(DB_NAME) -c "SELECT 1" > /dev/null 2>&1; do \
-		sleep 1; \
-	done
-
-	@echo "Cargando schema..."
-	@docker compose exec -T $(DB_SERVICE) \
-		psql -v ON_ERROR_STOP=1 -U $(DB_USER) -d $(DB_NAME) < db/schema/schema.sql
-
-	@echo "Ejecutando pruebas..."
-	go test -v ./...
-
-	@echo "Dejando entorno limpio..."
-	docker compose  down -v
+test: build
+	@sh scripts/test.sh
 
 clean:
 	@rm -rf tmp
