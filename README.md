@@ -27,7 +27,13 @@ para personalizar las credenciales y los puertos. Make usa los valores del ejemp
 si no existe `.env`.
 
 ```bash
+cp .env.example .env
+```
+
+```bash
 make db-init  # Solo la primera vez: levanta PostgreSQL y crea las tablas
+make db-up # Las demas veces que se quiera levantar la base de datos de DESARROLLO
+make db-down # Baja el contenedor de DESARROLLO
 make run     # Levanta la base y ejecuta la aplicación
 ```
 
