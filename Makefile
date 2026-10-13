@@ -13,7 +13,7 @@ DB_URL := postgres://$(DB_USER):$(DB_PASSWORD)@localhost:$(DB_PORT)/$(DB_NAME)?s
 SQLC_VERSION := v1.31.1
 
 
-.PHONY: all run generate build test clean db-up db-down db-init
+.PHONY: all run generate build test test-api clean db-up db-down db-init
 
 
 all: build
@@ -41,6 +41,8 @@ build: generate
 test: build
 	@sh scripts/test.sh
 
+test-api: build
+	@sh scripts/test-api.sh
+
 clean:
 	@rm -rf tmp
-	

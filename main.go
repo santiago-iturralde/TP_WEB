@@ -38,9 +38,16 @@ func main() {
 
 	// Crea las consultas SQL a partir de la conexión a la base de datos
 	queries := db.New(database)
+
+	// Instanciación de Usuario
 	usuarioRepo := repository.NewUsuarioRepository(queries)
 	usuarioService := service.NewUsuarioService(usuarioRepo)
 	usuarioHandler := handler.NewUsuarioHandler(usuarioService, "static/usuario.html")
+
+	// Instanciación de Producto
+	productoRepo := repository.NewProductoRepository(queries)
+	productoService := service.NewProductoService(productoRepo)
+	productoHandler := handler.NewProductoHandler(productoService)
 
 	mux := http.NewServeMux()
 	mux.Handle("/usuario", usuarioHandler)
@@ -48,6 +55,10 @@ func main() {
 		http.ServeFile(w, r, "static/usuario.css")
 	})
 	mux.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
+
+	mux.HandleFunc("/productos", productoHandler.Coleccion)
+	mux.HandleFunc("/productos/{id}", productoHandler.Elemento)
+
 	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		if r.URL.Path != "/" {
 			http.NotFound(w, r)
@@ -58,7 +69,7 @@ func main() {
 	})
 
 	port := ":8080"
-	slog.Info("Servidor TP2 iniciado", "url", "http://localhost"+port+"/usuario")
+	slog.Info("Servidor TP3 iniciado", "url", "http://localhost"+port+"/usuario")
 
 	if err := http.ListenAndServe(port, mux); err != nil {
 		slog.Error("Error al iniciar el servidor", "error", err)

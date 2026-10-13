@@ -1,94 +1,128 @@
-# Trabajo de Cursada: Catálogo de Productos (E-commerce)
+# Trabajo de Cursada - Parte 3: Exponiendo la Lógica como API REST
 
-## Descripción del Proyecto
-El objetivo del proyecto es una aplicación web para la gestión de un catálogo de productos de e-commerce, con un panel de administración para realizar operaciones CRUD sobre artículos de inventario. Actualmente, la aplicación implementa el formulario de alta de usuarios con persistencia en PostgreSQL; el esquema también define productos y carritos.
+Este repositorio contiene la implementación de la **Parte 3 (TP3)** de la materia. Consiste en la construcción de una **API REST HTTP** completa para la gestión de productos en un sistema de e-commerce de perfumes, manteniendo la arquitectura en capas y la persistencia en PostgreSQL mediante `sqlc`.
 
-**Entidad** Producto  
-**Atributos:** idProducto, Nombre, Descripción, Precio, Stock, Categoría
+---
 
-**Entidad** Carrito  
-**Atributos:** idCarrito, idUsuario, total
+## 1. Dominio y Entidades del Sistema
 
-**Entidad** ProductosCarrito  
-**Atributos:** idProductosCarrito, idProducto, idCarrito, cantidad
+El sistema gestiona cuatro entidades principales dentro del esquema de PostgreSQL:
 
-**Entidad** Usuario   
-**Atributos:** idUsuario, email, contraseña
+* **Producto** (Entidad principal del TP3):
+  * `id_producto`: Identificador único autogenerado (Serial/PK).
+  * `nombre_prod`: Nombre del producto/perfume.
+  * `descripcion_prod`: Descripción detallada.
+  * `precio_prod`: Precio unitario (Decimal).
+  * `stock_prod`: Cantidad de unidades disponibles en inventario.
+  * `categoria`: Clasificación del producto.
 
-## Requisitos del entorno
+* **Usuario**:
+  * `id_usuario`: Identificador único (Serial/PK).
+  * `email`: Correo electrónico (Único).
+  * `contrasena`: Clave de acceso.
 
-- Go 1.25 o superior, Make y Docker con Docker Compose compatible con `up --wait`.
-- Acceso a Internet para descargar módulos de Go, sqlc y la imagen de PostgreSQL.
+* **Carrito** y **ProductosCarrito**:
+  * Tablas relacionales para la gestión de compras e ítems seleccionados.
 
-## Desarrollo
+---
 
-Desde la raíz del repositorio, opcionalmente copiá `.env.example` a `.env`
-para personalizar las credenciales y los puertos. Make usa los valores del ejemplo
-si no existe `.env`.
+## 2. Documentación de Endpoints (API REST)
 
+La API REST expone las operaciones CRUD sobre la entidad `Producto` en la ruta `/productos`, respetando las convenciones HTTP:
+
+| Método | Endpoint | Descripción | Código Éxito | Códigos Error |
+| :--- | :--- | :--- | :--- | :--- |
+| **POST** | `/productos` | Crea un nuevo producto recibiendo JSON. | `201 Created` | `400 Bad Request` |
+| **GET** | `/productos` | Retorna la lista completa de productos en JSON. | `200 OK` | `500 Internal Error` |
+| **GET** | `/productos/{id}` | Obtiene el detalle de un producto por su ID. | `200 OK` | `404 Not Found`, `400 Bad Request` |
+| **PUT** | `/productos/{id}` | Actualiza todos los datos de un producto por su ID. | `200 OK` | `404 Not Found`, `400 Bad Request` |
+| **DELETE** | `/productos/{id}` | Elimina el producto especificado por su ID. | `204 No Content` | `404 Not Found`, `400 Bad Request` |
+
+### Rutas Adicionales del Proyecto:
+* `GET /usuario`: Muestra el formulario HTML de registro de usuarios.
+* `POST /usuario`: Procesa el alta de usuarios (acepta Form o JSON).
+* `GET /`: Redirige automáticamente a `/usuario`.
+
+---
+
+## 3. Requisitos del Entorno
+
+Para compilar, ejecutar y probar el proyecto es necesario contar con:
+* **Go** 1.25 o superior.
+* **Docker** y **Docker Compose** (con soporte para `--wait`).
+* **Make** (herramienta de automatización).
+* **curl** (para la ejecución de los tests de la API).
+
+---
+
+## 4. Guía Paso a Paso para Ejecutar el Proyecto
+
+### Paso 1: Clonar y configurar variables de entorno
+Copiar el archivo de ejemplo `.env.example` a `.env` (si se desean modificar los puertos o credenciales por defecto):
 ```bash
 cp .env.example .env
 ```
 
+### Paso 2: Inicializar la Base de Datos de Desarrollo
+Ejecutar el siguiente comando **solo la primera vez** para levantar PostgreSQL en Docker y crear el esquema de tablas:
 ```bash
-make db-init  # Solo la primera vez: levanta PostgreSQL y crea las tablas
-make db-up # Las demas veces que se quiera levantar la base de datos de DESARROLLO
-make db-down # Baja el contenedor de DESARROLLO
-make run     # Levanta la base y ejecuta la aplicación
+make db-init
 ```
 
-Abrí http://localhost:8080/usuario. La ruta raíz `/` redirige automáticamente a `/usuario`.
-Detené la aplicación con Ctrl+C y la base con `make db-down`.
-Este último comando conserva los datos. `make db-init` se ejecuta una sola vez
-por volumen nuevo: el esquema no es una migración y falla si las tablas ya existen.
-
-La base de desarrollo usa el proyecto Compose `tp_web`, el volumen
-`tp_web_db_perfumes_data` y el puerto 5432 por defecto. Se conserva el nombre
-habitual del proyecto de esta carpeta para reutilizar su volumen existente.
-Si antes usabas otro nombre de proyecto Compose, sus datos permanecen en su
-volumen anterior; estos comandos no los migran automáticamente.
-
-## Compilación y tests
-
-Después de clonar, compilá y ejecutá los tests desde la raíz:
-
+### Paso 3: Iniciar el Servidor Web
+Para levantar la base de datos y la aplicación en modo desarrollo:
 ```bash
-make build && make test
+make run
+```
+La aplicación quedará escuchando en `http://localhost:8080`.
+
+### Paso 4: Detener el Entorno de Desarrollo
+Para apagar el contenedor de PostgreSQL conservando los datos:
+```bash
+make db-down
 ```
 
-`make build` genera el código con sqlc y compila la aplicación en `tmp/TP_WEB`
-sin levantar contenedores. `&&` ejecuta los tests solo si la compilación termina
-correctamente.
+---
 
-`make test` también depende de `build`, por lo que vuelve a generar y compilar;
-puede ejecutarse por separado. Luego elimina el entorno
-de tests anterior, levanta PostgreSQL, espera hasta 60 segundos, carga el esquema
-y ejecuta las pruebas con el paquete `testing` de Go. Al finalizar, también ante
-un error o una interrupción normal, elimina los contenedores y volúmenes de tests.
+## 5. Pruebas Automatizadas de la API REST (`make test-api`)
 
-Las pruebas usan el proyecto Compose `tpweb-test`, el volumen
-`tpweb-test_test_data`, la base `perfumes_test` y el puerto 5433. Se puede cambiar
-con `make test TEST_DB_PORT=5434`. Este entorno es independiente de desarrollo:
-la limpieza de tests no elimina los datos de desarrollo. No ejecutes dos instancias
-de `make test` simultáneamente, porque comparten el entorno de pruebas.
+El proyecto incluye un script de automatización integral que realiza la prueba E2E (End-to-End) de la API REST en un entorno Docker totalmente aislado.
 
-Go se ejecuta en la máquina local y PostgreSQL en Docker. El script proporciona
-`DATABASE_URL` y las variables `DB_*` apuntando a la base de tests.
-Los tests usan el repositorio real y verifican la persistencia en PostgreSQL desde
-una conexión independiente: alta de usuario, rechazo de datos inválidos sin insertar
-filas y rechazo de emails duplicados. También comprueban el formulario y que la
-respuesta no exponga la contraseña. El script configura `TEST_DATABASE_URL`;
-sin esa variable o sin conexión a `perfumes_test`, los tests fallan explícitamente.
+### Para ejecutar el test completo de la API:
+```bash
+make test-api
+```
+*(O directamente `./scripts/test-api.sh`)*
 
-## Organización del código
+### ¿Qué realiza automáticamente `make test-api`?
+1. **Tareas Previas**: Genera el código con `sqlc`, compila el binario en `tmp/TP_WEB`, elimina contenedores o volúmenes previos de test, levanta un contenedor aislado de PostgreSQL en el puerto `5433` y carga el esquema SQL (`db/schema/schema.sql`).
+2. **Ejecución del Servidor**: Inicia la aplicación en segundo plano conectada a la base de pruebas.
+3. **Prueba de Endpoints (`requests.sh`)**: Ejecuta peticiones `curl` probando el ciclo de vida completo:
+   * Crea un producto (`POST`).
+   * Consulta el catálogo completo (`GET`).
+   * Consulta el producto creado por su ID (`GET /productos/{id}`).
+   * Modifica el producto (`PUT`).
+   * Borra el producto (`DELETE`).
+   * Recomprueba que devuelva `404 Not Found` al intentar consultar el producto eliminado.
+4. **Tareas Posteriores**: Detiene el proceso del servidor Go y destruye los contenedores y volúmenes de prueba (`docker compose down -v`).
 
-El flujo de alta es `UsuarioHandler → UsuarioService → UsuarioRepository`.
-El handler interpreta las peticiones y genera las respuestas HTTP; el servicio
-normaliza el email, valida los datos y coordina el alta; el repositorio ejecuta
-las consultas en PostgreSQL.
+---
 
-## Documentación de persistencia
+## 6. Pruebas Unitarias e Integración con Go (`make test`)
 
-El [documento del proyecto](Mi%20primera%20aplicacion%20web-1.pdf) describe
-las entidades, relaciones y consultas. El esquema está en `db/schema/schema.sql`,
-las consultas en `db/queries/queries.sql` y el código generado en `db/sqlc/`.
+Para ejecutar los tests de integración escritos con el paquete `testing` de Go:
+```bash
+make test
+```
+Este comando levanta la base de datos de pruebas, ejecuta la suite de `go test ./...` para verificar la lógica de repositorios y servicios, y limpia el entorno al finalizar.
+
+
+### Estructura de Archivos Clave:
+* `main.go`: Punto de entrada del sistema. Conecta la base de datos, inicializa repositorios, servicios y handlers, y registra los endpoints en `http.ServeMux`.
+* `handler/producto.go`: Handler HTTP para los endpoints de `/productos`.
+* `service/producto.go`: Lógica de negocio y validación de productos.
+* `repository/producto.go`: Capa de datos para productos utilizando `sqlc`.
+* `db/schema/schema.sql`: Definición de tablas en PostgreSQL.
+* `db/queries/queries.sql`: Consultas SQL utilizadas por `sqlc`.
+* `requests.sh`: Script ejecutable con peticiones `curl` de demostración/prueba.
+* `scripts/test-api.sh`: Script de automatización de entorno y ejecución de tests API.
