@@ -11,7 +11,7 @@ import (
 type Carrito struct {
 	IDCarrito int32         `json:"id_carrito"`
 	IDUsuario sql.NullInt32 `json:"id_usuario"`
-	Total     string        `json:"total"`
+	Total     float64       `json:"total"`
 }
 
 type Producto struct {

@@ -18,7 +18,7 @@ RETURNING id_carrito, id_usuario, total
 
 type CreateCarritoParams struct {
 	IDUsuario sql.NullInt32 `json:"id_usuario"`
-	Total     string        `json:"total"`
+	Total     float64       `json:"total"`
 }
 
 // CONSULTAS PARA LA ENTIDAD: CARRITO-----------------------------------------------------------------
@@ -325,6 +325,69 @@ func (q *Queries) ListProductos(ctx context.Context) ([]Producto, error) {
 	return items, nil
 }
 
+const listProductosCarrito = `-- name: ListProductosCarrito :many
+SELECT id_productos_carrito, id_producto, id_carrito, cantidad
+FROM productos_carrito
+ORDER BY id_productos_carrito
+`
+
+func (q *Queries) ListProductosCarrito(ctx context.Context) ([]ProductosCarrito, error) {
+	rows, err := q.db.QueryContext(ctx, listProductosCarrito)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []ProductosCarrito
+	for rows.Next() {
+		var i ProductosCarrito
+		if err := rows.Scan(
+			&i.IDProductosCarrito,
+			&i.IDProducto,
+			&i.IDCarrito,
+			&i.Cantidad,
+		); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
+const listUsuarios = `-- name: ListUsuarios :many
+SELECT id_usuario, email, contrasena
+FROM usuario
+ORDER BY id_usuario
+`
+
+func (q *Queries) ListUsuarios(ctx context.Context) ([]Usuario, error) {
+	rows, err := q.db.QueryContext(ctx, listUsuarios)
+	if err != nil {
+		return nil, err
+	}
+	defer rows.Close()
+	var items []Usuario
+	for rows.Next() {
+		var i Usuario
+		if err := rows.Scan(&i.IDUsuario, &i.Email, &i.Contrasena); err != nil {
+			return nil, err
+		}
+		items = append(items, i)
+	}
+	if err := rows.Close(); err != nil {
+		return nil, err
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+	return items, nil
+}
+
 const updateCarrito = `-- name: UpdateCarrito :exec
 UPDATE carrito
 SET id_usuario = $2,
@@ -335,7 +398,7 @@ WHERE id_carrito = $1
 type UpdateCarritoParams struct {
 	IDCarrito int32         `json:"id_carrito"`
 	IDUsuario sql.NullInt32 `json:"id_usuario"`
-	Total     string        `json:"total"`
+	Total     float64       `json:"total"`
 }
 
 func (q *Queries) UpdateCarrito(ctx context.Context, arg UpdateCarritoParams) error {
@@ -396,4 +459,22 @@ func (q *Queries) UpdateProductoCarrito(ctx context.Context, arg UpdateProductoC
 		&i.Cantidad,
 	)
 	return i, err
+}
+
+const updateUsuario = `-- name: UpdateUsuario :exec
+UPDATE usuario
+SET email = $2,
+    contrasena = $3
+WHERE id_usuario = $1
+`
+
+type UpdateUsuarioParams struct {
+	IDUsuario  int32  `json:"id_usuario"`
+	Email      string `json:"email"`
+	Contrasena string `json:"contrasena"`
+}
+
+func (q *Queries) UpdateUsuario(ctx context.Context, arg UpdateUsuarioParams) error {
+	_, err := q.db.ExecContext(ctx, updateUsuario, arg.IDUsuario, arg.Email, arg.Contrasena)
+	return err
 }

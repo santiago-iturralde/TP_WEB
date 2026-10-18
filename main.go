@@ -49,12 +49,30 @@ func main() {
 	productoService := service.NewProductoService(productoRepo)
 	productoHandler := handler.NewProductoHandler(productoService)
 
+	// Instanciación de Carrito
+	carritoRepo := repository.NewCarritoRepository(queries)
+	carritoService := service.NewCarritoService(carritoRepo)
+	carritoHandler := handler.NewCarritoHandler(carritoService)
+
+	// Instanciación de ProductosCarrito
+	productosCarritoRepo := repository.NewProductosCarritoRepository(queries)
+	productosCarritoService := service.NewProductosCarritoService(productosCarritoRepo)
+	productosCarritoHandler := handler.NewProductosCarritoHandler(productosCarritoService)
+
 	mux := http.NewServeMux()
 	mux.Handle("/usuario", usuarioHandler)
+	mux.HandleFunc("/usuarios", usuarioHandler.Coleccion)
+	mux.HandleFunc("/usuarios/{id}", usuarioHandler.Elemento)
 	mux.HandleFunc("/usuario.css", func(w http.ResponseWriter, r *http.Request) {
 		http.ServeFile(w, r, "static/usuario.css")
 	})
 	mux.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
+
+	mux.HandleFunc("/productos_carrito", productosCarritoHandler.Coleccion)
+	mux.HandleFunc("/productos_carrito/{id}", productosCarritoHandler.Elemento)
+
+	mux.HandleFunc("/carritos", carritoHandler.Coleccion)
+	mux.HandleFunc("/carritos/{id}", carritoHandler.Elemento)
 
 	mux.HandleFunc("/productos", productoHandler.Coleccion)
 	mux.HandleFunc("/productos/{id}", productoHandler.Elemento)

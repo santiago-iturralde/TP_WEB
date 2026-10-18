@@ -47,6 +47,17 @@ SELECT id_usuario, email, contrasena
 FROM usuario
 WHERE email = $1;
 
+-- name: ListUsuarios :many
+SELECT id_usuario, email, contrasena
+FROM usuario
+ORDER BY id_usuario;
+
+-- name: UpdateUsuario :exec
+UPDATE usuario
+SET email = $2,
+    contrasena = $3
+WHERE id_usuario = $1;
+
 -- name: DeleteUsuario :exec
 DELETE FROM usuario
 WHERE id_usuario = $1;
@@ -93,6 +104,12 @@ RETURNING id_productos_carrito, id_producto, id_carrito, cantidad;
 SELECT id_productos_carrito, id_producto, id_carrito, cantidad
 FROM productos_carrito
 WHERE id_productos_carrito = $1;
+
+
+-- name: ListProductosCarrito :many
+SELECT id_productos_carrito, id_producto, id_carrito, cantidad
+FROM productos_carrito
+ORDER BY id_productos_carrito;
 
 
 -- name: GetProductosByCarrito :many

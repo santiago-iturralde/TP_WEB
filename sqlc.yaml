@@ -12,3 +12,5 @@ sql:
         overrides:
           - column: "producto.precio_prod"
             go_type: "float64"
+          - column: "carrito.total"
+            go_type: "float64"

@@ -1,6 +1,6 @@
 # Trabajo de Cursada - Parte 3: Exponiendo la Lógica como API REST
 
-Este repositorio contiene la implementación de la **Parte 3 (TP3)** de la materia. Consiste en la construcción de una **API REST HTTP** completa para la gestión de productos en un sistema de e-commerce de perfumes, manteniendo la arquitectura en capas y la persistencia en PostgreSQL mediante `sqlc`.
+Este repositorio contiene la implementación de la **Parte 3 (TP3)** de la materia. Consiste en la construcción de una **API REST HTTP** con operaciones CRUD para Producto, Usuario, Carrito y Productos_carrito en un sistema de e-commerce de perfumes, manteniendo la arquitectura en capas y la persistencia en PostgreSQL mediante `sqlc`.
 
 ---
 
@@ -21,8 +21,12 @@ El sistema gestiona cuatro entidades principales dentro del esquema de PostgreSQ
   * `email`: Correo electrónico (Único).
   * `contrasena`: Clave de acceso.
 
-* **Carrito** y **ProductosCarrito**:
-  * Tablas relacionales para la gestión de compras e ítems seleccionados.
+* **Carrito**:
+  * `id_carrito`: Identificador autogenerado.
+  * `id_usuario`: Referencia opcional a un usuario existente.
+  * `total`: Importe entre 0 y 99999999.99; por defecto 0.
+
+* **ProductosCarrito**: Ítems seleccionados con `id_productos_carrito`, `id_producto`, `id_carrito` y `cantidad`.
 
 ---
 
@@ -37,6 +41,76 @@ La API REST expone las operaciones CRUD sobre la entidad `Producto` en la ruta `
 | **GET** | `/productos/{id}` | Obtiene el detalle de un producto por su ID. | `200 OK` | `404 Not Found`, `400 Bad Request` |
 | **PUT** | `/productos/{id}` | Actualiza todos los datos de un producto por su ID. | `200 OK` | `404 Not Found`, `400 Bad Request` |
 | **DELETE** | `/productos/{id}` | Elimina el producto especificado por su ID. | `204 No Content` | `404 Not Found`, `400 Bad Request` |
+
+### Carrito
+
+Carrito sigue la misma arquitectura `handler → service → repository → sqlc` que Producto.
+
+| Método | Endpoint | Descripción | Código de éxito |
+| :--- | :--- | :--- | :--- |
+| POST | `/carritos` | Crea un carrito. | 201 |
+| GET | `/carritos` | Lista los carritos (array JSON, `[]` si no hay). | 200 |
+| GET | `/carritos/{id}` | Obtiene un carrito por ID. | 200 |
+| PUT | `/carritos/{id}` | Reemplaza usuario y total. | 200 |
+| DELETE | `/carritos/{id}` | Elimina un carrito. | 204 |
+
+POST y PUT reciben JSON, por ejemplo `{"id_usuario": 1, "total": 1500.50}`.
+El usuario debe existir; también se permite omitir `id_usuario` o enviar `null`,
+como admite el esquema actual. Si se omite `total`, se usa 0. En PUT, omitir
+el usuario lo deja en NULL y omitir el total lo deja en 0.
+El total se devuelve como número JSON, siguiendo el mapeo del precio de Producto.
+El usuario opcional conserva el formato generado por sqlc (`{"Int32":1,"Valid":true}`).
+Se devuelve 400 ante JSON o IDs inválidos, total negativo o fuera de rango,
+o usuario inexistente; 404 si no existe el carrito; 405 para métodos no permitidos;
+y 500 ante errores internos.
+
+El total del carrito se recibe en el JSON. El CRUD de ítems no recalcula ese total
+ni modifica el stock de Producto.
+
+### Productos_carrito
+
+La entidad usa las mismas capas y herramientas que Producto y Carrito.
+
+| Método | Endpoint | Descripción | Código de éxito |
+| :--- | :--- | :--- | :--- |
+| POST | `/productos_carrito` | Agrega un ítem. | 201 |
+| GET | `/productos_carrito` | Lista todos los ítems (`[]` si no hay). | 200 |
+| GET | `/productos_carrito/{id}` | Obtiene un ítem por su ID. | 200 |
+| PUT | `/productos_carrito/{id}` | Actualiza la cantidad del ítem. | 200 |
+| DELETE | `/productos_carrito/{id}` | Elimina un ítem. | 204 |
+
+POST recibe `{"id_producto": 1, "id_carrito": 1, "cantidad": 2}`.
+Ambas referencias deben existir y los tres campos deben ser enteros positivos.
+PUT recibe `{"cantidad": 3}` y mantiene el producto y el carrito del ítem,
+respetando la consulta SQL existente. El ID de la URL identifica el registro
+`id_productos_carrito`, no el producto ni el carrito.
+
+Se devuelve 400 ante datos inválidos o referencias inexistentes, 404 si el ítem
+no existe, 405 para métodos no permitidos y 500 ante errores internos.
+`requests.sh` crea un producto y un carrito, prueba el CRUD de ítems y elimina
+los datos utilizados al finalizar correctamente.
+
+### Usuario
+
+Usuario expone el CRUD con las mismas capas que las demás entidades.
+
+| Método | Endpoint | Descripción | Código de éxito |
+| :--- | :--- | :--- | :--- |
+| POST | `/usuarios` | Crea un usuario. | 201 |
+| GET | `/usuarios` | Lista los usuarios (`[]` si no hay). | 200 |
+| GET | `/usuarios/{id}` | Obtiene un usuario por ID. | 200 |
+| PUT | `/usuarios/{id}` | Actualiza email y contraseña. | 200 |
+| DELETE | `/usuarios/{id}` | Elimina un usuario. | 204 |
+
+POST y PUT reciben `{"email":"persona@example.com","contrasena":"secreto123"}`.
+El email se normaliza a minúsculas y se quitan los espacios de los extremos.
+La contraseña debe tener al menos 8 caracteres. PUT requiere ambos campos.
+Las respuestas JSON incluyen únicamente `id_usuario` y `email`.
+Se devuelve 400 ante datos o IDs inválidos, 404 si no existe el usuario,
+409 si el email ya está registrado y 500 ante errores internos.
+Al eliminar un usuario se aplica la cascada definida en el esquema para sus carritos.
+
+El formulario y el alta originales en `/usuario` continúan disponibles.
 
 ### Rutas Adicionales del Proyecto:
 * `GET /usuario`: Muestra el formulario HTML de registro de usuarios.
@@ -105,6 +179,7 @@ make test-api
    * Modifica el producto (`PUT`).
    * Borra el producto (`DELETE`).
    * Recomprueba que devuelva `404 Not Found` al intentar consultar el producto eliminado.
+   * Repite el ciclo CRUD completo para Carrito, Productos_carrito y Usuario.
 4. **Tareas Posteriores**: Detiene el proceso del servidor Go y destruye los contenedores y volúmenes de prueba (`docker compose down -v`).
 
 ---
@@ -115,11 +190,16 @@ Para ejecutar los tests de integración escritos con el paquete `testing` de Go:
 ```bash
 make test
 ```
+Los tests de Usuario, Carrito y Productos_carrito verifican el CRUD HTTP, la persistencia
+desde otra conexión, las validaciones, las referencias y los códigos de error.
+
 Este comando levanta la base de datos de pruebas, ejecuta la suite de `go test ./...` para verificar la lógica de repositorios y servicios, y limpia el entorno al finalizar.
 
 
 ### Estructura de Archivos Clave:
 * `main.go`: Punto de entrada del sistema. Conecta la base de datos, inicializa repositorios, servicios y handlers, y registra los endpoints en `http.ServeMux`.
+* `handler/productos_carrito.go`, `service/productos_carrito.go`, `repository/productos_carrito.go`: CRUD de ítems del carrito.
+* `handler/carrito.go`, `service/carrito.go`, `repository/carrito.go`: CRUD de Carrito.
 * `handler/producto.go`: Handler HTTP para los endpoints de `/productos`.
 * `service/producto.go`: Lógica de negocio y validación de productos.
 * `repository/producto.go`: Capa de datos para productos utilizando `sqlc`.

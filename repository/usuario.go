@@ -11,12 +11,18 @@ import (
 	"github.com/jackc/pgx/v5/pgconn"
 )
 
+var ErrUsuarioNoEncontrado = errors.New("usuario no encontrado")
+
 var ErrEmailExistente = errors.New("el email ya esta registrado")
 
 // UsuarioRepository concentra las consultas a la tabla usuario.
 type UsuarioRepository interface {
 	Crear(ctx context.Context, email, contrasena string) (db.Usuario, error)
 	BuscarPorEmail(ctx context.Context, email string) (db.Usuario, error)
+	ObtenerPorID(ctx context.Context, id int32) (db.Usuario, error)
+	Listar(ctx context.Context) ([]db.Usuario, error)
+	Actualizar(ctx context.Context, arg db.UpdateUsuarioParams) error
+	Eliminar(ctx context.Context, id int32) error
 }
 
 type usuarioRepository struct {
@@ -69,4 +75,49 @@ func logErrorUsuario(ctx context.Context, operacion string, err error) {
 		attrs = append(attrs, "sqlstate", pgErr.Code)
 	}
 	slog.ErrorContext(ctx, "operacion de usuario", attrs...)
+}
+
+func (r *usuarioRepository) ObtenerPorID(ctx context.Context, id int32) (db.Usuario, error) {
+	usuario, err := r.queries.GetUsuario(ctx, id)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return db.Usuario{}, ErrUsuarioNoEncontrado
+		}
+		logErrorUsuario(ctx, "obtener_por_id", err)
+		return db.Usuario{}, fmt.Errorf("obtener usuario por id: %w", err)
+	}
+	return usuario, nil
+}
+
+func (r *usuarioRepository) Listar(ctx context.Context) ([]db.Usuario, error) {
+	usuarios, err := r.queries.ListUsuarios(ctx)
+	if err != nil {
+		logErrorUsuario(ctx, "listar", err)
+		return nil, fmt.Errorf("listar usuarios: %w", err)
+	}
+	if usuarios == nil {
+		usuarios = []db.Usuario{}
+	}
+	return usuarios, nil
+}
+
+func (r *usuarioRepository) Actualizar(ctx context.Context, arg db.UpdateUsuarioParams) error {
+	if err := r.queries.UpdateUsuario(ctx, arg); err != nil {
+		var pgErr *pgconn.PgError
+		if errors.As(err, &pgErr) && pgErr.Code == "23505" {
+			slog.WarnContext(ctx, "operacion de usuario", "operacion", "actualizar", "resultado", "email_duplicado")
+			return ErrEmailExistente
+		}
+		logErrorUsuario(ctx, "actualizar", err)
+		return fmt.Errorf("actualizar usuario: %w", err)
+	}
+	return nil
+}
+
+func (r *usuarioRepository) Eliminar(ctx context.Context, id int32) error {
+	if err := r.queries.DeleteUsuario(ctx, id); err != nil {
+		logErrorUsuario(ctx, "eliminar", err)
+		return fmt.Errorf("eliminar usuario: %w", err)
+	}
+	return nil
 }
