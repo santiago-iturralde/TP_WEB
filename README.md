@@ -89,10 +89,11 @@ make db-down
 El proyecto incluye un script de automatización integral que realiza la prueba E2E (End-to-End) de la API REST en un entorno Docker totalmente aislado.
 
 ### Para ejecutar el test completo de la API:
+Antes de ejecutar las pruebas, detené con `Ctrl+C` el servidor que hayas iniciado con `make run` y asegurate de que el puerto `8080` esté libre. Las pruebas inician su propio servidor en ese puerto.
+
 ```bash
 make test-api
 ```
-*(O directamente `./scripts/test-api.sh`)*
 
 ### ¿Qué realiza automáticamente `make test-api`?
 1. **Tareas Previas**: Genera el código con `sqlc`, compila el binario en `tmp/TP_WEB`, elimina contenedores o volúmenes previos de test, levanta un contenedor aislado de PostgreSQL en el puerto `5433` y carga el esquema SQL (`db/schema/schema.sql`).
