@@ -1,4 +1,4 @@
 .env
 tmp/
-app.log
+*.log
 tecnologias.md

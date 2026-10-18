@@ -9,7 +9,7 @@ CREATE_RESP=$(curl -s -w "\nHTTP_STATUS:%{http_code}" -X POST "$BASE_URL/product
   -d '{
     "nombre_prod": "Chanel No. 5",
     "descripcion_prod": "Perfume clasico elegante",
-    "precio_prod": "15000.50",
+    "precio_prod": 15000.50,
     "stock_prod": 20,
     "categoria": "Fragancias"
   }')
@@ -54,7 +54,7 @@ UPDATE_RESP=$(curl -s -w "\nHTTP_STATUS:%{http_code}" -X PUT "$BASE_URL/producto
   -d '{
     "nombre_prod": "Chanel No. 5 Redesign",
     "descripcion_prod": "Edicion especial 2026",
-    "precio_prod": "18500.00",
+    "precio_prod": 18500.00,
     "stock_prod": 15,
     "categoria": "Fragancias de Lujo"
   }')

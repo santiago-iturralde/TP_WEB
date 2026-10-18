@@ -18,7 +18,7 @@ type Producto struct {
 	IDProducto      int32          `json:"id_producto"`
 	NombreProd      string         `json:"nombre_prod"`
 	DescripcionProd sql.NullString `json:"descripcion_prod"`
-	PrecioProd      string         `json:"precio_prod"`
+	PrecioProd      float64        `json:"precio_prod"`
 	StockProd       int32          `json:"stock_prod"`
 	Categoria       string         `json:"categoria"`
 }

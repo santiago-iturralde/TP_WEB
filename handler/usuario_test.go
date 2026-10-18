@@ -31,17 +31,24 @@ func separarTest(t *testing.T) {
 // Cada llamada abre un pool independiente: las lecturas verifican datos confirmados.
 func abrirDBTest(t *testing.T) *sql.DB {
 	t.Helper()
+
 	dsn := os.Getenv("TEST_DATABASE_URL")
+
 	if dsn == "" {
 		t.Fatal("falta TEST_DATABASE_URL: ejecutar make test para levantar PostgreSQL de tests")
 	}
+
 	database, err := sql.Open("pgx", dsn)
 	if err != nil {
 		t.Fatalf("abrir PostgreSQL de tests: %v", err)
 	}
+
 	t.Cleanup(func() { database.Close() })
+
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+
 	defer cancel()
+	
 	var name string
 	if err := database.QueryRowContext(ctx, "SELECT current_database()").Scan(&name); err != nil {
 		t.Fatalf("conectar a PostgreSQL de tests: %v", err)

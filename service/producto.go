@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"strconv"
 	"strings"
 
 	db "TP_WEB/db/sqlc"
@@ -28,19 +27,19 @@ func NewProductoService(repo repository.ProductoRepository) *ProductoService {
 }
 
 type CrearProductoDTO struct {
-	Nombre      string `json:"nombre_prod"`
-	Descripcion string `json:"descripcion_prod"`
-	Precio      string `json:"precio_prod"`
-	Stock       int32  `json:"stock_prod"`
-	Categoria   string `json:"categoria"`
+	Nombre      string  `json:"nombre_prod"`
+	Descripcion string  `json:"descripcion_prod"`
+	Precio      float64 `json:"precio_prod"`
+	Stock       int32   `json:"stock_prod"`
+	Categoria   string  `json:"categoria"`
 }
 
 type ActualizarProductoDTO struct {
-	Nombre      string `json:"nombre_prod"`
-	Descripcion string `json:"descripcion_prod"`
-	Precio      string `json:"precio_prod"`
-	Stock       int32  `json:"stock_prod"`
-	Categoria   string `json:"categoria"`
+	Nombre      string  `json:"nombre_prod"`
+	Descripcion string  `json:"descripcion_prod"`
+	Precio      float64 `json:"precio_prod"`
+	Stock       int32   `json:"stock_prod"`
+	Categoria   string  `json:"categoria"`
 }
 
 func (s *ProductoService) Crear(ctx context.Context, dto CrearProductoDTO) (db.Producto, error) {
@@ -51,7 +50,7 @@ func (s *ProductoService) Crear(ctx context.Context, dto CrearProductoDTO) (db.P
 	params := db.CreateProductoParams{
 		NombreProd:      strings.TrimSpace(dto.Nombre),
 		DescripcionProd: sql.NullString{String: strings.TrimSpace(dto.Descripcion), Valid: strings.TrimSpace(dto.Descripcion) != ""},
-		PrecioProd:      strings.TrimSpace(dto.Precio),
+		PrecioProd:      dto.Precio,
 		StockProd:       dto.Stock,
 		Categoria:       strings.TrimSpace(dto.Categoria),
 	}
@@ -82,7 +81,7 @@ func (s *ProductoService) Actualizar(ctx context.Context, id int32, dto Actualiz
 		IDProducto:      id,
 		NombreProd:      strings.TrimSpace(dto.Nombre),
 		DescripcionProd: sql.NullString{String: strings.TrimSpace(dto.Descripcion), Valid: strings.TrimSpace(dto.Descripcion) != ""},
-		PrecioProd:      strings.TrimSpace(dto.Precio),
+		PrecioProd:      dto.Precio,
 		StockProd:       dto.Stock,
 		Categoria:       strings.TrimSpace(dto.Categoria),
 	}
@@ -103,15 +102,14 @@ func (s *ProductoService) Eliminar(ctx context.Context, id int32) error {
 	return s.repo.Eliminar(ctx, id)
 }
 
-func validarDatosProducto(nombre, categoria, precio string, stock int32) error {
+func validarDatosProducto(nombre, categoria string, precio float64, stock int32) error {
 	if strings.TrimSpace(nombre) == "" {
 		return ErrNombreVacio
 	}
 	if strings.TrimSpace(categoria) == "" {
 		return ErrCategoriaVacia
 	}
-	valPrecio, err := strconv.ParseFloat(strings.TrimSpace(precio), 64)
-	if err != nil || valPrecio <= 0 {
+	if precio <= 0 {
 		return ErrPrecioInvalido
 	}
 	if stock < 0 {
