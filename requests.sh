@@ -88,6 +88,69 @@ if [ "$NOT_FOUND_STATUS" -ne 404 ]; then
 fi
 echo "Verificacion correcta: el producto borrado retorno HTTP 404."
 echo ""
+
+echo "=== TEST: Crear producto con valores invalidos ==="
+
+probar_producto_invalido() {
+
+    DESCRIPCION=$1
+    DATOS_JSON=$2
+    ERROR_ESPERADO=$3
+
+    echo "=== Probando: $DESCRIPCION ==="
+
+    RESP=$(curl -sS -w "\nHTTP_STATUS:%{http_code}" \
+        -X POST "$BASE_URL/productos" \
+        -H "Content-Type: application/json" \
+        -d "$DATOS_JSON")
+
+    STATUS=$(printf '%s\n' "$RESP" | grep '^HTTP_STATUS:' | cut -d: -f2)
+
+    BODY=$(printf '%s\n' "$RESP" | sed '/^HTTP_STATUS:/d')
+
+    if [ "$STATUS" != "400" ]; then
+        echo "ERROR: Esperabamos HTTP 400, recibimos $STATUS"
+        exit 1
+    fi
+
+    case "$BODY" in
+        *"$ERROR_ESPERADO"*)
+            echo "OK: Error detectado correctamente"
+            ;;
+        *)
+            echo "ERROR: El mensaje no coincide"
+            echo "Esperado: $ERROR_ESPERADO"
+            echo "Recibido: $BODY"
+            exit 1
+            ;;
+    esac
+}
+
+probar_producto_invalido "precio negativo" \
+    '{"nombre_prod":"Invictus","precio_prod":-100,"stock_prod":10,"categoria":"Perfumes"}' \
+    'el precio debe ser un numero valido mayor a cero'
+
+# Nombre vacio
+probar_producto_invalido "nombre vacio" \
+    '{"nombre_prod":"","precio_prod":100,"stock_prod":10,"categoria":"Perfumes"}' \
+    "el nombre del producto no puede estar vacio"
+
+# Stock negativo
+probar_producto_invalido "stock negativo" \
+    '{"nombre_prod":"Invictus","precio_prod":100,"stock_prod":-5,"categoria":"Perfumes"}' \
+    "el stock no puede ser negativo"
+
+# Categoria vacia
+probar_producto_invalido "categoria vacia" \
+    '{"nombre_prod":"Invictus","precio_prod":100,"stock_prod":10,"categoria":""}' \
+    "la categoria no puede estar vacia"
+
+# Tipo de precio incorrecto
+probar_producto_invalido "precio como texto" \
+    '{"nombre_prod":"Invictus","precio_prod":"hola","stock_prod":10,"categoria":"Perfumes"}' \
+    "JSON invalido"
+
+echo ""
 echo "=== 1. POST /carritos (Crear carrito) ==="
 CREATE_RESP=$(curl -s -w "\nHTTP_STATUS:%{http_code}" -X POST "$BASE_URL/carritos" \
   -H "Content-Type: application/json" \
