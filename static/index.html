@@ -2,16 +2,77 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>Tienda de perfumes </title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Catálogo de perfumes y fragancias disponibles en nuestra tienda.">
+  <title>Tienda de Perfumes | Catálogo de Productos</title>
+  <link rel="stylesheet" href="/static/estilos.css">
+  <script src="/static/app.js" defer></script>
 </head>
 <body>
+  <header class="encabezado">
+    <a class="marca" href="/static/index.html" aria-label="Tienda de Perfumes, inicio">
+      <span class="marca-icono" aria-hidden="true">✳</span>
+      <span>Tienda de Perfumes</span>
+    </a>
+    <p class="encabezado-detalle">Aromas para cada momento</p>
+  </header>
 
-  <h1>Bienvenidos a nuestra tienda de perfumes</h1>
+  <main class="contenedor">
+    <section class="presentacion" aria-labelledby="titulo-principal">
+      <p class="sobrelinea">ESENCIAS QUE CUENTAN HISTORIAS</p>
+      <h1 id="titulo-principal">Catálogo de productos</h1>
+      <p class="presentacion-texto">Explorá nuestra selección de fragancias y encontrá tu próximo aroma favorito.</p>
+    </section>
 
-  <p>
-    Descubrí una selección exclusiva de perfumes para cada estilo y ocasión. 
-     Encontrá fragancias únicas, desde aromas frescos y delicados hasta esencias intensas y sofisticadas,
-     y elegí la que mejor refleje tu personalidad. 
-  </p>
+    <div class="contenido">
+      <aside class="panel-formulario" aria-labelledby="titulo-formulario">
+        <p class="sobrelinea">NUEVA FRAGANCIA</p>
+        <h2 id="titulo-formulario">Agregar un producto</h2>
+        <p class="ayuda-formulario">Completá los datos para sumar un perfume al catálogo.</p>
+
+        <form id="formulario-producto">
+          <label for="nombre_prod">Nombre del perfume</label>
+          <input id="nombre_prod" name="nombre_prod" type="text" maxlength="255" placeholder="Ej.: Chanel No. 5" required>
+
+          <label for="descripcion_prod">Descripción</label>
+          <textarea id="descripcion_prod" name="descripcion_prod" rows="3" maxlength="1000" placeholder="Contanos sobre esta fragancia"></textarea>
+
+          <div class="campos-en-fila">
+            <div>
+              <label for="precio_prod">Precio</label>
+              <input id="precio_prod" name="precio_prod" type="number" min="0.01" step="0.01" placeholder="15000.00" required>
+            </div>
+            <div>
+              <label for="stock_prod">Stock</label>
+              <input id="stock_prod" name="stock_prod" type="number" min="0" step="1" placeholder="10" required>
+            </div>
+          </div>
+
+          <label for="categoria">Categoría</label>
+          <input id="categoria" name="categoria" type="text" maxlength="100" placeholder="Ej.: Fragancias" required>
+
+          <button class="boton boton-principal" type="submit">Agregar al catálogo <span aria-hidden="true">→</span></button>
+          <p id="mensaje-formulario" class="mensaje" role="status" aria-live="polite"></p>
+        </form>
+      </aside>
+
+      <section class="seccion-catalogo" aria-labelledby="titulo-catalogo">
+        <div class="catalogo-encabezado">
+          <div>
+            <p class="sobrelinea">NUESTRA SELECCIÓN</p>
+            <h2 id="titulo-catalogo">Todos los perfumes</h2>
+          </div>
+          <span id="cantidad-productos" class="contador">Cargando...</span>
+        </div>
+
+        <p id="mensaje-catalogo" class="mensaje mensaje-catalogo" role="status" aria-live="polite"></p>
+        <div id="lista-productos" class="grilla-productos" aria-live="polite"></div>
+      </section>
+    </div>
+  </main>
+
+  <footer class="pie">
+    <p>Tienda de Perfumes <span aria-hidden="true">·</span> Catálogo de productos</p>
+  </footer>
 </body>
 </html>
