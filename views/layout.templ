@@ -1,0 +1,29 @@
+package views
+
+templ Layout(titulo string) {
+	<!DOCTYPE html>
+	<html lang="es">
+		<head>
+			<meta charset="UTF-8"/>
+			<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+			<meta name="description" content="Catálogo de perfumes y fragancias disponibles en nuestra tienda."/>
+			<title>{ titulo }</title>
+			<link rel="stylesheet" href="/static/estilos.css"/>
+		</head>
+		<body>
+			<header class="encabezado">
+				<a class="marca" href="/" aria-label="Tienda de Perfumes, inicio">
+					<span class="marca-icono" aria-hidden="true">✳</span>
+					<span>Tienda de Perfumes</span>
+				</a>
+				<p class="encabezado-detalle">Aromas para cada momento</p>
+			</header>
+			<main class="contenedor">
+				{ children... }
+			</main>
+			<footer class="pie">
+				<p>Tienda de Perfumes <span aria-hidden="true">·</span> Catálogo de productos</p>
+			</footer>
+		</body>
+	</html>
+}

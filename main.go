@@ -19,6 +19,7 @@ import (
 )
 
 func main() {
+
 	logFile, err := os.OpenFile("app.log", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0600)
 	if err != nil {
 		log.Fatalf("No se pudo abrir app.log: %s", err)
@@ -77,14 +78,7 @@ func main() {
 	mux.HandleFunc("/productos", productoHandler.Coleccion)
 	mux.HandleFunc("/productos/{id}", productoHandler.Elemento)
 
-	mux.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
-		if r.URL.Path != "/" {
-			http.NotFound(w, r)
-			return
-		}
-
-		http.Redirect(w, r, "/usuario", http.StatusFound)
-	})
+	mux.HandleFunc("GET /{$}", productoHandler.Index)
 
 	port := ":8080"
 	slog.Info("Servidor TP3 iniciado", "url", "http://localhost"+port+"/usuario")

@@ -1,0 +1,17 @@
+package views
+
+import db "TP_WEB/db/sqlc"
+
+templ IndexPage(productos []db.Producto, data ProductFormData, message string) {
+	@Layout("Tienda de Perfumes | Catálogo de Productos") {
+		<section class="presentacion" aria-labelledby="titulo-principal">
+			<p class="sobrelinea">ESENCIAS QUE CUENTAN HISTORIAS</p>
+			<h1 id="titulo-principal">Catálogo de productos</h1>
+			<p class="presentacion-texto">Explorá nuestra selección de fragancias y encontrá tu próximo aroma favorito.</p>
+		</section>
+		<div class="contenido">
+			@ProductForm(data, message)
+			@ProductList(productos)
+		</div>
+	}
+}

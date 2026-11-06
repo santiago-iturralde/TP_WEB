@@ -1,12 +1,14 @@
 package handler
 
 import (
+	"TP_WEB/service"
+	"TP_WEB/views"
+	"bytes"
 	"encoding/json"
 	"errors"
+	"mime"
 	"net/http"
 	"strconv"
-
-	"TP_WEB/service"
 )
 
 type ProductoHandler struct {
@@ -21,6 +23,11 @@ func NewProductoHandler(service *service.ProductoService) *ProductoHandler {
 func (h *ProductoHandler) Coleccion(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case http.MethodPost:
+		contentType, _, _ := mime.ParseMediaType(r.Header.Get("Content-Type"))
+		if contentType == "application/x-www-form-urlencoded" {
+			h.crearFormulario(w, r)
+			return
+		}
 		h.crear(w, r)
 	case http.MethodGet:
 		h.listar(w, r)
@@ -146,4 +153,27 @@ func (h *ProductoHandler) eliminar(w http.ResponseWriter, r *http.Request, id in
 	}
 
 	w.WriteHeader(http.StatusNoContent)
+}
+
+func (h *ProductoHandler) Index(w http.ResponseWriter, r *http.Request) {
+	h.renderIndex(w, r, http.StatusOK, views.ProductFormData{}, "")
+}
+
+func (h *ProductoHandler) renderIndex(w http.ResponseWriter, r *http.Request, status int, data views.ProductFormData, message string) {
+	productos, err := h.service.Listar(r.Context())
+	if err != nil {
+		http.Error(w, "Error al obtener productos", http.StatusInternalServerError)
+		return
+	}
+
+	// Generamos primero en memoria para no enviar HTML incompleto si hay un error.
+	var page bytes.Buffer
+	err = views.IndexPage(productos, data, message).Render(r.Context(), &page)
+	if err != nil {
+		http.Error(w, "Error al generar la página", http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.WriteHeader(status)
+	_, _ = page.WriteTo(w)
 }

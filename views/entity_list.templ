@@ -1,0 +1,53 @@
+package views
+
+import (
+	db "TP_WEB/db/sqlc"
+	"fmt"
+)
+
+templ ProductList(productos []db.Producto) {
+	<section class="seccion-catalogo" aria-labelledby="titulo-catalogo">
+		<div class="catalogo-encabezado">
+			<div>
+				<p class="sobrelinea">NUESTRA SELECCIÓN</p>
+				<h2 id="titulo-catalogo">Todos los perfumes</h2>
+			</div>
+			<span id="cantidad-productos" class="contador">
+				if len(productos) == 1 {
+					1 producto
+				} else {
+					{ fmt.Sprintf("%d productos", len(productos)) }
+				}
+			</span>
+		</div>
+		<div id="lista-productos" class="grilla-productos">
+			if len(productos) == 0 {
+				<div class="estado-vacio">
+					<strong>Todavía no hay perfumes</strong>
+					<span>No hay productos cargados.</span>
+				</div>
+			}
+			for _, producto := range productos {
+				<article class="tarjeta-producto">
+					<div class="tarjeta-superior">
+						<span class="etiqueta-categoria">{ producto.Categoria }</span>
+					</div>
+					<h3>{ producto.NombreProd }</h3>
+					<p class="descripcion-producto">
+						if producto.DescripcionProd.Valid && producto.DescripcionProd.String != "" {
+							{ producto.DescripcionProd.String }
+						} else {
+							Una fragancia especial para sumar a tu colección.
+						}
+					</p>
+					<div class="tarjeta-pie">
+						<div>
+							<p class="precio-producto">$ { fmt.Sprintf("%.2f", producto.PrecioProd) }</p>
+							<p class="stock-producto">{ fmt.Sprintf("%d unidades disponibles", producto.StockProd) }</p>
+						</div>
+					</div>
+				</article>
+			}
+		</div>
+	</section>
+}
