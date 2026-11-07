@@ -1,0 +1,19 @@
+services:
+  database:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: tp5_local
+      POSTGRES_DB: perfumes_tp5
+    ports:
+      - "127.0.0.1:${DELIVERY_DB_PORT:-5434}:5432"
+    volumes:
+      - delivery_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -h 127.0.0.1 -U postgres -d perfumes_tp5"]
+      interval: 1s
+      timeout: 5s
+      retries: 60
+
+volumes:
+  delivery_data:

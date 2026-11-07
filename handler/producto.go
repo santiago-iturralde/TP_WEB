@@ -40,7 +40,7 @@ func (h *ProductoHandler) Coleccion(w http.ResponseWriter, r *http.Request) {
 // GET /productos/{id}, PUT /productos/{id} y DELETE /productos/{id}
 func (h *ProductoHandler) Elemento(w http.ResponseWriter, r *http.Request) {
 	idStr := r.PathValue("id")
-	id, err := strconv.Atoi(idStr)
+	id, err := strconv.ParseInt(idStr, 10, 32)
 	if err != nil || id <= 0 {
 		http.Error(w, "ID de producto invalido", http.StatusBadRequest)
 		return

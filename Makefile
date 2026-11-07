@@ -14,11 +14,17 @@ SQLC_VERSION := v1.31.1
 TEMPL_VERSION := v0.3.960
 
 
-.PHONY: all run generate build test test-api clean db-up db-down db-init generate-sqlc generate-templ
+.PHONY: all run run-app check-delivery generate build test test-api clean db-up db-down db-init generate-sqlc generate-templ
 
 
 all: build
 
+
+run-app:
+	@sh scripts/run-app.sh
+
+check-delivery:
+	@sh scripts/run-app.sh --check
 
 run: generate db-up
 	@go run .

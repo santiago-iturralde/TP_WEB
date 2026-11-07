@@ -14,29 +14,11 @@ import (
 )
 
 type UsuarioHandler struct {
-	service  *service.UsuarioService
-	formPath string
+	service *service.UsuarioService
 }
 
-func NewUsuarioHandler(usuarioService *service.UsuarioService, formPath string) *UsuarioHandler {
-	return &UsuarioHandler{service: usuarioService, formPath: formPath}
-}
-
-func (h *UsuarioHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
-	switch r.Method {
-	case http.MethodGet:
-		h.mostrarFormulario(w, r)
-	case http.MethodPost:
-		h.crearUsuario(w, r)
-	default:
-		w.Header().Set("Allow", "GET, POST")
-		http.Error(w, "metodo no permitido", http.StatusMethodNotAllowed)
-	}
-}
-
-func (h *UsuarioHandler) mostrarFormulario(w http.ResponseWriter, r *http.Request) {
-	w.Header().Set("Content-Type", "text/html; charset=utf-8")
-	http.ServeFile(w, r, h.formPath)
+func NewUsuarioHandler(usuarioService *service.UsuarioService) *UsuarioHandler {
+	return &UsuarioHandler{service: usuarioService}
 }
 
 func (h *UsuarioHandler) crearUsuario(w http.ResponseWriter, r *http.Request) {

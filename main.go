@@ -43,7 +43,7 @@ func main() {
 	// Instanciación de Usuario
 	usuarioRepo := repository.NewUsuarioRepository(queries)
 	usuarioService := service.NewUsuarioService(usuarioRepo)
-	usuarioHandler := handler.NewUsuarioHandler(usuarioService, "static/usuario.html")
+	usuarioHandler := handler.NewUsuarioHandler(usuarioService)
 
 	// Instanciación de Producto
 	productoRepo := repository.NewProductoRepository(queries)
@@ -61,13 +61,11 @@ func main() {
 	productosCarritoHandler := handler.NewProductosCarritoHandler(productosCarritoService)
 
 	mux := http.NewServeMux()
-	mux.Handle("/usuario", usuarioHandler)
 	mux.HandleFunc("/usuarios", usuarioHandler.Coleccion)
 	mux.HandleFunc("/usuarios/{id}", usuarioHandler.Elemento)
-	mux.HandleFunc("/usuario.css", func(w http.ResponseWriter, r *http.Request) {
-		http.ServeFile(w, r, "static/usuario.css")
+	mux.HandleFunc("GET /static/estilos.css", func(w http.ResponseWriter, r *http.Request) {
+		http.ServeFile(w, r, "static/estilos.css")
 	})
-	mux.Handle("/static/", http.StripPrefix("/static/", http.FileServer(http.Dir("static"))))
 
 	mux.HandleFunc("/productos_carrito", productosCarritoHandler.Coleccion)
 	mux.HandleFunc("/productos_carrito/{id}", productosCarritoHandler.Elemento)
@@ -80,11 +78,11 @@ func main() {
 
 	mux.HandleFunc("GET /{$}", productoHandler.Index)
 
-	port := ":8080"
-	slog.Info("Servidor TP3 iniciado", "url", "http://localhost"+port+"/usuario")
+	port := ":" + envOrDefault("HTTP_PORT", "8080")
+	slog.Info("Servidor TP5 SSR iniciado", "url", "http://localhost"+port+"/")
 
 	if err := http.ListenAndServe(port, mux); err != nil {
-		slog.Error("Error al iniciar el servidor", "error", err)
+		log.Fatalf("Error al iniciar el servidor: %v", err)
 	}
 }
 

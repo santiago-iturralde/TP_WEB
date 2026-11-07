@@ -1,209 +1,171 @@
-# Trabajo de Cursada - Parte 3: Exponiendo la Lógica como API REST
+# TP5 — Renderizado del lado del servidor con Templ
 
-Este repositorio contiene la implementación de la **Parte 3 (TP3)** de la materia. Consiste en la construcción de una **API REST HTTP** con operaciones CRUD para Producto, Usuario, Carrito y Productos_carrito en un sistema de e-commerce de perfumes, manteniendo la arquitectura en capas y la persistencia en PostgreSQL mediante `sqlc`.
+Trabajo de cursada de Programación Web, UNICEN.
+El catálogo de perfumes se genera en Go con Templ y datos de PostgreSQL obtenidos
+mediante SQLc. El listado y el formulario funcionan sin JavaScript, con recargas
+completas de página. Se mantienen los estilos CSS del TP4.
 
----
+## 1. Requisitos
 
-## 1. Dominio y Entidades del Sistema
+- Git para clonar el repositorio.
+- Go 1.25 o superior (con descarga automática del toolchain habilitada cuando una dependencia la requiera).
+- Docker en ejecución y Docker Compose v2 con soporte de `up --wait`.
+- Make, shell POSIX (`sh`) y curl.
+- Internet durante la primera ejecución para descargar módulos Go e imagen PostgreSQL.
+- Puertos 8080 (aplicación) y 5434 (PostgreSQL) disponibles.
 
-El sistema gestiona cuatro entidades principales dentro del esquema de PostgreSQL:
+No hace falta instalar SQLc, Templ, Air, Node ni PostgreSQL localmente.
+Los generadores se ejecutan con `go run` y versiones fijadas en el Makefile:
+SQLc `v1.31.1` y Templ `v0.3.960`.
 
-* **Producto** (Entidad principal del TP3):
-  * `id_producto`: Identificador único autogenerado (Serial/PK).
-  * `nombre_prod`: Nombre del producto/perfume.
-  * `descripcion_prod`: Descripción detallada.
-  * `precio_prod`: Precio unitario (Decimal).
-  * `stock_prod`: Cantidad de unidades disponibles en inventario.
-  * `categoria`: Clasificación del producto.
+## 2. Clonar y ejecutar la aplicación
 
-* **Usuario**:
-  * `id_usuario`: Identificador único (Serial/PK).
-  * `email`: Correo electrónico (Único).
-  * `contrasena`: Clave de acceso.
-
-* **Carrito**:
-  * `id_carrito`: Identificador autogenerado.
-  * `id_usuario`: Referencia opcional a un usuario existente.
-  * `total`: Importe entre 0 y 99999999.99; por defecto 0.
-
-* **ProductosCarrito**: Ítems seleccionados con `id_productos_carrito`, `id_producto`, `id_carrito` y `cantidad`.
-
----
-
-## 2. Documentación de Endpoints (API REST)
-
-La API REST expone las operaciones CRUD sobre la entidad `Producto` en la ruta `/productos`, respetando las convenciones HTTP:
-
-| Método | Endpoint | Descripción | Código Éxito | Códigos Error |
-| :--- | :--- | :--- | :--- | :--- |
-| **POST** | `/productos` | Crea un nuevo producto recibiendo JSON. | `201 Created` | `400 Bad Request` |
-| **GET** | `/productos` | Retorna la lista completa de productos en JSON. | `200 OK` | `500 Internal Error` |
-| **GET** | `/productos/{id}` | Obtiene el detalle de un producto por su ID. | `200 OK` | `404 Not Found`, `400 Bad Request` |
-| **PUT** | `/productos/{id}` | Actualiza todos los datos de un producto por su ID. | `200 OK` | `404 Not Found`, `400 Bad Request` |
-| **DELETE** | `/productos/{id}` | Elimina el producto especificado por su ID. | `204 No Content` | `404 Not Found`, `400 Bad Request` |
-
-### Carrito
-
-Carrito sigue la misma arquitectura `handler → service → repository → sqlc` que Producto.
-
-| Método | Endpoint | Descripción | Código de éxito |
-| :--- | :--- | :--- | :--- |
-| POST | `/carritos` | Crea un carrito. | 201 |
-| GET | `/carritos` | Lista los carritos (array JSON, `[]` si no hay). | 200 |
-| GET | `/carritos/{id}` | Obtiene un carrito por ID. | 200 |
-| PUT | `/carritos/{id}` | Reemplaza usuario y total. | 200 |
-| DELETE | `/carritos/{id}` | Elimina un carrito. | 204 |
-
-POST y PUT reciben JSON, por ejemplo `{"id_usuario": 1, "total": 1500.50}`.
-El usuario debe existir; también se permite omitir `id_usuario` o enviar `null`,
-como admite el esquema actual. Si se omite `total`, se usa 0. En PUT, omitir
-el usuario lo deja en NULL y omitir el total lo deja en 0.
-El total se devuelve como número JSON, siguiendo el mapeo del precio de Producto.
-El usuario opcional conserva el formato generado por sqlc (`{"Int32":1,"Valid":true}`).
-Se devuelve 400 ante JSON o IDs inválidos, total negativo o fuera de rango,
-o usuario inexistente; 404 si no existe el carrito; 405 para métodos no permitidos;
-y 500 ante errores internos.
-
-El total del carrito se recibe en el JSON. El CRUD de ítems no recalcula ese total
-ni modifica el stock de Producto.
-
-### Productos_carrito
-
-La entidad usa las mismas capas y herramientas que Producto y Carrito.
-
-| Método | Endpoint | Descripción | Código de éxito |
-| :--- | :--- | :--- | :--- |
-| POST | `/productos_carrito` | Agrega un ítem. | 201 |
-| GET | `/productos_carrito` | Lista todos los ítems (`[]` si no hay). | 200 |
-| GET | `/productos_carrito/{id}` | Obtiene un ítem por su ID. | 200 |
-| PUT | `/productos_carrito/{id}` | Actualiza la cantidad del ítem. | 200 |
-| DELETE | `/productos_carrito/{id}` | Elimina un ítem. | 204 |
-
-POST recibe `{"id_producto": 1, "id_carrito": 1, "cantidad": 2}`.
-Ambas referencias deben existir y los tres campos deben ser enteros positivos.
-PUT recibe `{"cantidad": 3}` y mantiene el producto y el carrito del ítem,
-respetando la consulta SQL existente. El ID de la URL identifica el registro
-`id_productos_carrito`, no el producto ni el carrito.
-
-Se devuelve 400 ante datos inválidos o referencias inexistentes, 404 si el ítem
-no existe, 405 para métodos no permitidos y 500 ante errores internos.
-`requests.sh` crea un producto y un carrito, prueba el CRUD de ítems y elimina
-los datos utilizados al finalizar correctamente.
-
-### Usuario
-
-Usuario expone el CRUD con las mismas capas que las demás entidades.
-
-| Método | Endpoint | Descripción | Código de éxito |
-| :--- | :--- | :--- | :--- |
-| POST | `/usuarios` | Crea un usuario. | 201 |
-| GET | `/usuarios` | Lista los usuarios (`[]` si no hay). | 200 |
-| GET | `/usuarios/{id}` | Obtiene un usuario por ID. | 200 |
-| PUT | `/usuarios/{id}` | Actualiza email y contraseña. | 200 |
-| DELETE | `/usuarios/{id}` | Elimina un usuario. | 204 |
-
-POST y PUT reciben `{"email":"persona@example.com","contrasena":"secreto123"}`.
-El email se normaliza a minúsculas y se quitan los espacios de los extremos.
-La contraseña debe tener al menos 8 caracteres. PUT requiere ambos campos.
-Las respuestas JSON incluyen únicamente `id_usuario` y `email`.
-Se devuelve 400 ante datos o IDs inválidos, 404 si no existe el usuario,
-409 si el email ya está registrado y 500 ante errores internos.
-Al eliminar un usuario se aplica la cascada definida en el esquema para sus carritos.
-
-El formulario y el alta originales en `/usuario` continúan disponibles.
-
-### Rutas Adicionales del Proyecto:
-* `GET /usuario`: Muestra el formulario HTML de registro de usuarios.
-* `POST /usuario`: Procesa el alta de usuarios (acepta Form o JSON).
-* `GET /`: Redirige automáticamente a `/usuario`.
-
----
-
-## 3. Requisitos del Entorno
-
-Para compilar, ejecutar y probar el proyecto es necesario contar con:
-* **Go** 1.25 o superior.
-* **Docker** y **Docker Compose** (con soporte para `--wait`).
-* **Make** (herramienta de automatización).
-* **curl** (para la ejecución de los tests de la API).
-
----
-
-## 4. Guía Paso a Paso para Ejecutar el Proyecto
-
-### Paso 1: Clonar y configurar variables de entorno
-Copiar el archivo de ejemplo `.env.example` a `.env` (si se desean modificar los puertos o credenciales por defecto):
-```bash
-cp .env.example .env
+```sh
+git clone --branch tp5 https://github.com/santiago-iturralde/TP_WEB.git
+cd TP_WEB
+make run-app
 ```
 
-### Paso 2: Inicializar la Base de Datos de Desarrollo
-Ejecutar el siguiente comando **solo la primera vez** para levantar PostgreSQL en Docker y crear el esquema de tablas:
-```bash
-make db-init
+Abrir **http://localhost:8080/**. No se necesita copiar `.env`, crear tablas
+manualmente ni ejecutar comandos previos.
+
+`make run-app` ejecuta `scripts/run-app.sh`, que:
+
+1. Borra contenedores y volúmenes anteriores **del proyecto Compose `tpweb-tp5`**.
+2. Genera código SQLc y Templ y compila el ejecutable en `tmp/TP_WEB`.
+3. Levanta PostgreSQL 15 y espera a que su healthcheck confirme disponibilidad.
+4. Carga `db/schema/schema.sql`, deteniéndose si el esquema falla.
+5. Arranca el servidor Go, conectado explícitamente a esa base, y comprueba su respuesta.
+6. Al terminar, fallar o recibir `Ctrl+C`, detiene el servidor y elimina los
+   contenedores, la red y el volumen utilizados mediante un `trap`.
+
+**Cada ejecución comienza con un catálogo vacío. Los perfumes agregados se guardan
+mientras dura esa ejecución y se eliminan al cerrarla**. El volumen de desarrollo `tp_web` no se toca. Una finalización forzada
+con SIGKILL o un apagado no permite ejecutar traps; el siguiente arranque limpia
+los recursos anteriores antes de comenzar. Al interrumpir con `Ctrl+C`, Make puede
+mostrar `Error 130`: es el código de interrupción, no un fallo de la limpieza.
+
+Para usar otros puertos:
+
+```sh
+HTTP_PORT=8081 DELIVERY_DB_PORT=5435 make run-app
 ```
 
-### Paso 3: Iniciar el Servidor Web
-Para levantar la base de datos y la aplicación en modo desarrollo:
-```bash
-make run
+No ejecutar dos instancias de `make run-app` simultáneas: comparten el proyecto Compose
+`tpweb-tp5`. Si un puerto está ocupado, cerrar el proceso correspondiente o elegir
+otro; el script no termina procesos ajenos.
+
+## 3. Qué probar en el navegador
+
+1. Abrir `/`: aparece el formulario y el mensaje de catálogo vacío.
+2. Completar nombre, descripción opcional, precio, stock y categoría.
+3. Enviar: el servidor guarda el producto y vuelve a `/`, donde aparece su tarjeta.
+4. Recargar: el producto sigue guardado y no se repite el alta.
+5. Agregar otro producto y comprobar el contador y la lista.
+6. Detener con `Ctrl+C`: se elimina la base de esta ejecución.
+
+El navegador valida campos requeridos y límites básicos. El servidor también
+valida, sin depender del navegador. Si rechaza el formulario, devuelve HTML con
+estado 400, un mensaje y los valores ingresados. Los errores internos usan 500.
+
+## 4. Arquitectura y flujo SSR
+
+```text
+GET /
+  -> ProductoHandler.Index
+  -> ProductoService.Listar
+  -> ProductoRepository -> SQLc -> PostgreSQL
+  -> views.IndexPage(productos, datosFormulario, mensaje)
+  -> Render(contexto, respuesta)
+  -> HTML completo al navegador
 ```
-La aplicación quedará escuchando en `http://localhost:8080`.
 
-### Paso 4: Detener el Entorno de Desarrollo
-Para apagar el contenedor de PostgreSQL conservando los datos:
-```bash
-make db-down
+```text
+POST /productos (application/x-www-form-urlencoded)
+  -> ParseForm y conversión de los campos numéricos
+  -> validación y ProductoService.Crear
+  -> repositorio -> SQLc -> INSERT en PostgreSQL
+  -> 303 See Other, Location: /
+  -> el navegador hace GET / y recibe el catálogo actualizado
 ```
 
----
+Este último recorrido es **Post/Redirect/Get (PRG)**. El HTML lo genera el
+servidor; el navegador aplica CSS y presenta la página. No se utiliza `fetch`,
+JavaScript ni una API JSON para construir la interfaz.
 
-## 5. Pruebas Automatizadas de la API REST (`make test-api`)
+Los `.templ` son fuentes editables. `templ generate` produce los `_templ.go`,
+que Go compila con la aplicación; no se editan manualmente ni se generan por
+cada petición. En cada petición se ejecutan las funciones Go ya compiladas.
 
-El proyecto incluye un script de automatización integral que realiza la prueba E2E (End-to-End) de la API REST en un entorno Docker totalmente aislado.
+## 5. Archivos y responsabilidades
 
-### Para ejecutar el test completo de la API:
-Antes de ejecutar las pruebas, detené con `Ctrl+C` el servidor que hayas iniciado con `make run` y asegurate de que el puerto `8080` esté libre. Las pruebas inician su propio servidor en ese puerto.
+| Archivo o carpeta | Responsabilidad |
+| --- | --- |
+| `main.go` | Conexión PostgreSQL, composición de capas y registro de rutas. |
+| `views/layout.templ` | Documento HTML, encabezado, CSS, contenido hijo y pie. |
+| `views/index.templ` | Composición de la página del catálogo. |
+| `views/entity_list.templ` | Tarjetas, contador y estado vacío a partir de `[]db.Producto`. |
+| `views/entity_form.templ` | Formulario clásico y mensajes de validación. |
+| `handler/producto.go` | GET principal y renderizado; despacho del POST según Content-Type. |
+| `handler/producto_formulario.go` | Lectura de campos, conversiones y PRG. |
+| `service/` | Validaciones y reglas de negocio. |
+| `repository/` | Acceso a datos mediante consultas SQLc. |
+| `db/schema/`, `db/queries/`, `db/sqlc/` | Esquema, consultas SQL y código generado. |
+| `static/estilos.css` | Diseño del catálogo; único recurso estático de la interfaz. |
+| `scripts/run-app.sh` | Preparación, ejecución y limpieza de la aplicación. |
+| `docker-compose.delivery.yml` | Configuración de PostgreSQL utilizada por `make run-app`. |
 
-```bash
+**Alcance de la interfaz:** listado y alta de productos. No incluye una pantalla
+de carrito, edición o borrado desde la interfaz. Se retiraron las páginas estáticas
+anteriores y `app.js`; la interfaz funciona sin JavaScript.
+
+El dominio original (Producto, Usuario, Carrito y ProductosCarrito), sus consultas,
+servicios y pruebas de regresión se conserva. Los endpoints JSON `/productos`,
+`/usuarios`, `/carritos` y `/productos_carrito` y sus rutas `/{id}` continúan como
+API de compatibilidad, pero la pantalla SSR no los consulta por JavaScript.
+El POST `/productos` reconoce el formulario HTML; los clientes JSON conservan
+su respuesta JSON. `/usuario` y `/static/index.html` ya no son pantallas disponibles.
+
+## 6. Pruebas automatizadas
+
+```sh
+make check-delivery
+```
+
+Ejecuta el **mismo ciclo que `make run-app`** y `scripts/check-ssr.sh`: catálogo vacío,
+CSS disponible, formulario, alta HTTP, redirección 303, producto en HTML, escape
+de texto, rechazo de un precio inválido y conservación de los campos. Verifica
+que las páginas retiradas no se sirvan. Al terminar elimina la base utilizada.
+No ejecutar mientras `make run-app` esté activo, porque usan el mismo entorno.
+
+```sh
+make test
 make test-api
 ```
 
-### ¿Qué realiza automáticamente `make test-api`?
-1. **Tareas Previas**: Genera el código con `sqlc`, compila el binario en `tmp/TP_WEB`, elimina contenedores o volúmenes previos de test, levanta un contenedor aislado de PostgreSQL en el puerto `5433` y carga el esquema SQL (`db/schema/schema.sql`).
-2. **Ejecución del Servidor**: Inicia la aplicación en segundo plano conectada a la base de pruebas.
-3. **Prueba de Endpoints (`requests.sh`)**: Ejecuta peticiones `curl` probando el ciclo de vida completo:
-   * Crea un producto (`POST`).
-   * Consulta el catálogo completo (`GET`).
-   * Consulta el producto creado por su ID (`GET /productos/{id}`).
-   * Modifica el producto (`PUT`).
-   * Borra el producto (`DELETE`).
-   * Recomprueba que devuelva `404 Not Found` al intentar consultar el producto eliminado.
-   * Repite el ciclo CRUD completo para Carrito, Productos_carrito y Usuario.
-4. **Tareas Posteriores**: Detiene el proceso del servidor Go y destruye los contenedores y volúmenes de prueba (`docker compose down -v`).
+- `make test`: genera, compila y ejecuta las pruebas Go con PostgreSQL real,
+  incluyendo el alta SSR y comprobación de persistencia desde otra conexión.
+- `make test-api`: prueba por HTTP el CRUD y validaciones de las cuatro entidades.
+  Usa el puerto HTTP 18081 (configurable mediante `TEST_HTTP_PORT`).
+- Ambas utilizan el proyecto `tpweb-test`, la base `perfumes_test` y el puerto
+  PostgreSQL 5433 (`TEST_DB_PORT`). Crean el esquema y eliminan sus volúmenes
+  al terminar. Ejecutarlas una después de otra, no simultáneamente.
 
----
+## 7. Desarrollo opcional con datos persistentes
 
-## 6. Pruebas Unitarias e Integración con Go (`make test`)
+Para trabajar conservando los datos entre ejecuciones:
 
-Para ejecutar los tests de integración escritos con el paquete `testing` de Go:
-```bash
-make test
+```sh
+cp .env.example .env  # opcional: ajustar credenciales y puerto de desarrollo
+make db-init         # solo si la base de desarrollo todavía no tiene tablas
+make run
 ```
-Los tests de Usuario, Carrito y Productos_carrito verifican el CRUD HTTP, la persistencia
-desde otra conexión, las validaciones, las referencias y los códigos de error.
 
-Este comando levanta la base de datos de pruebas, ejecuta la suite de `go test ./...` para verificar la lógica de repositorios y servicios, y limpia el entorno al finalizar.
+`make run` genera SQLc y Templ, levanta la base de desarrollo y ejecuta Go.
+`make db-down` elimina el contenedor de desarrollo sin borrar su volumen.
+No usar `db-init` sobre un esquema ya creado.
 
-
-### Estructura de Archivos Clave:
-* `main.go`: Punto de entrada del sistema. Conecta la base de datos, inicializa repositorios, servicios y handlers, y registra los endpoints en `http.ServeMux`.
-* `handler/productos_carrito.go`, `service/productos_carrito.go`, `repository/productos_carrito.go`: CRUD de ítems del carrito.
-* `handler/carrito.go`, `service/carrito.go`, `repository/carrito.go`: CRUD de Carrito.
-* `handler/producto.go`: Handler HTTP para los endpoints de `/productos`.
-* `service/producto.go`: Lógica de negocio y validación de productos.
-* `repository/producto.go`: Capa de datos para productos utilizando `sqlc`.
-* `db/schema/schema.sql`: Definición de tablas en PostgreSQL.
-* `db/queries/queries.sql`: Consultas SQL utilizadas por `sqlc`.
-* `requests.sh`: Script ejecutable con peticiones `curl` de demostración/prueba.
-* `scripts/test-api.sh`: Script de automatización de entorno y ejecución de tests API.
+Air es opcional. Con la base iniciada y las variables de conexión del entorno
+configuradas, `air` observa `.go`, `.sql` y `.templ`, ejecuta `make build` y reinicia
+el servidor. Excluye `_templ.go` para evitar recompilaciones por archivos generados.
+El navegador se recarga manualmente. No ejecutar Air y `make run` al mismo tiempo.

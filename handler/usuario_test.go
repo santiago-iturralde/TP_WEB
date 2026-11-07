@@ -48,7 +48,7 @@ func abrirDBTest(t *testing.T) *sql.DB {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 
 	defer cancel()
-	
+
 	var name string
 	if err := database.QueryRowContext(ctx, "SELECT current_database()").Scan(&name); err != nil {
 		t.Fatalf("conectar a PostgreSQL de tests: %v", err)
@@ -61,7 +61,7 @@ func abrirDBTest(t *testing.T) *sql.DB {
 
 func handlerConDB(t *testing.T) *UsuarioHandler {
 	t.Helper()
-	return NewUsuarioHandler(service.NewUsuarioService(repository.NewUsuarioRepository(db.New(abrirDBTest(t)))), "../static/usuario.html")
+	return NewUsuarioHandler(service.NewUsuarioService(repository.NewUsuarioRepository(db.New(abrirDBTest(t)))))
 }
 
 func contarUsuarios(t *testing.T, database *sql.DB) int {
@@ -84,11 +84,11 @@ func TestCrearUsuarioDesdeFormulario(t *testing.T) {
 		}
 	})
 	form := url.Values{"email": {"  " + strings.ToUpper(email) + "  "}, "contrasena": {"secreto123"}}
-	req := httptest.NewRequest(http.MethodPost, "/usuario", strings.NewReader(form.Encode()))
+	req := httptest.NewRequest(http.MethodPost, "/usuarios", strings.NewReader(form.Encode()))
 	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 	res := httptest.NewRecorder()
 
-	h.ServeHTTP(res, req)
+	h.Coleccion(res, req)
 
 	if res.Code != http.StatusCreated {
 		t.Fatalf("status = %d, se esperaba %d; respuesta: %s", res.Code, http.StatusCreated, res.Body.String())
@@ -133,10 +133,10 @@ func TestCrearUsuarioRechazaDatosInvalidos(t *testing.T) {
 		{"contrasena corta", `{"email":"valido@example.com","contrasena":"corta"}`},
 	} {
 		t.Run(caso.nombre, func(t *testing.T) {
-			req := httptest.NewRequest(http.MethodPost, "/usuario", strings.NewReader(caso.cuerpo))
+			req := httptest.NewRequest(http.MethodPost, "/usuarios", strings.NewReader(caso.cuerpo))
 			req.Header.Set("Content-Type", "application/json")
 			res := httptest.NewRecorder()
-			h.ServeHTTP(res, req)
+			h.Coleccion(res, req)
 			if res.Code != http.StatusBadRequest {
 				t.Fatalf("status = %d, se esperaba %d", res.Code, http.StatusBadRequest)
 			}
@@ -144,22 +144,6 @@ func TestCrearUsuarioRechazaDatosInvalidos(t *testing.T) {
 				t.Fatalf("datos invalidos alteraron la DB: antes=%d, despues=%d", antes, despues)
 			}
 		})
-	}
-}
-
-func TestMostrarFormulario(t *testing.T) {
-	separarTest(t)
-	h := handlerConDB(t)
-	req := httptest.NewRequest(http.MethodGet, "/usuario", nil)
-	res := httptest.NewRecorder()
-
-	h.ServeHTTP(res, req)
-
-	if res.Code != http.StatusOK {
-		t.Fatalf("status = %d, se esperaba %d", res.Code, http.StatusOK)
-	}
-	if !strings.Contains(res.Body.String(), `action="/usuario"`) {
-		t.Fatal("la respuesta no contiene el formulario de usuario")
 	}
 }
 
@@ -175,10 +159,10 @@ func TestCrearUsuarioRechazaEmailDuplicado(t *testing.T) {
 	})
 	for _, esperado := range []int{http.StatusCreated, http.StatusConflict} {
 		form := url.Values{"email": {email}, "contrasena": {"secreto123"}}
-		req := httptest.NewRequest(http.MethodPost, "/usuario", strings.NewReader(form.Encode()))
+		req := httptest.NewRequest(http.MethodPost, "/usuarios", strings.NewReader(form.Encode()))
 		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
 		res := httptest.NewRecorder()
-		h.ServeHTTP(res, req)
+		h.Coleccion(res, req)
 		if res.Code != esperado {
 			t.Fatalf("status = %d, se esperaba %d; respuesta: %s", res.Code, esperado, res.Body.String())
 		}
