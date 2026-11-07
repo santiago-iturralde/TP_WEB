@@ -3,5 +3,6 @@ tmp_dir = "tmp"
 [build]
 cmd = "make build"
 entrypoint = ["./tmp/TP_WEB"]
-include_ext = ["go", "sql"]
+include_ext = ["go", "sql", "templ"]
 exclude_dir = ["tmp", "vendor"]
+exclude_regex = ["_templ\\.go$"]

@@ -11,15 +11,16 @@ export DB_USER DB_PASSWORD DB_NAME DB_PORT DB_HOST TEST_DB_PORT
 APP_NAME := TP_WEB
 DB_URL := postgres://$(DB_USER):$(DB_PASSWORD)@localhost:$(DB_PORT)/$(DB_NAME)?sslmode=disable
 SQLC_VERSION := v1.31.1
+TEMPL_VERSION := v0.3.960
 
 
-.PHONY: all run generate build test test-api clean db-up db-down db-init
+.PHONY: all run generate build test test-api clean db-up db-down db-init generate-sqlc generate-templ
 
 
 all: build
 
 
-run: db-up
+run: generate db-up
 	@go run .
 
 db-up:
@@ -31,8 +32,14 @@ db-down:
 db-init: db-up
 	@docker compose -p tp_web -f docker-compose.yml exec -T database psql -v ON_ERROR_STOP=1 -U $(DB_USER) -d $(DB_NAME) < db/schema/schema.sql
 
-generate:
+generate: generate-sqlc generate-templ
+
+generate-sqlc:
 	@go run github.com/sqlc-dev/sqlc/cmd/sqlc@$(SQLC_VERSION) generate
+
+generate-templ:
+	@go run github.com/a-h/templ/cmd/templ@$(TEMPL_VERSION) generate
+
 
 build: generate
 	@mkdir -p tmp
