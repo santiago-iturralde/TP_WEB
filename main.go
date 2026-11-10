@@ -6,7 +6,9 @@ import (
 	"io"
 	"log"
 	"log/slog"
+	"net"
 	"net/http"
+	"net/url"
 	"os"
 	"strings"
 
@@ -19,6 +21,10 @@ import (
 )
 
 func main() {
+	dsn, err := databaseURL()
+	if err != nil {
+		log.Fatalf("Error de configuración: %s", err)
+	}
 
 	logFile, err := os.OpenFile("app.log", os.O_CREATE|os.O_WRONLY|os.O_APPEND, 0600)
 	if err != nil {
@@ -28,7 +34,7 @@ func main() {
 	slog.SetDefault(slog.New(slog.NewTextHandler(io.MultiWriter(os.Stderr, logFile), nil)))
 
 	// Abre la conexion con la base de datos PostgreSQL usando la URL de conexión
-	database, err := sql.Open("pgx", databaseURL())
+	database, err := sql.Open("pgx", dsn)
 
 	if err != nil {
 		log.Fatalf("Error al configurar la base de datos: %s", err)
@@ -86,19 +92,25 @@ func main() {
 	}
 }
 
-func databaseURL() string {
-	if url := os.Getenv("DATABASE_URL"); url != "" {
-		return url
+func databaseURL() (string, error) {
+	if value := strings.TrimSpace(os.Getenv("DATABASE_URL")); value != "" {
+		return value, nil
 	}
 
-	user := envOrDefault("DB_USER", "postgres")
-	password := envOrDefault("DB_PASSWORD", "postgres")
-	name := envOrDefault("DB_NAME", "perfumes_db")
-	port := envOrDefault("DB_PORT", "5432")
-	host := envOrDefault("DB_HOST", "localhost")
+	for _, key := range []string{"DB_USER", "DB_PASSWORD", "DB_NAME"} {
+		if strings.TrimSpace(os.Getenv(key)) == "" {
+			return "", fmt.Errorf("falta %s: configurá .env y ejecutá mediante Make", key)
+		}
+	}
 
-	return fmt.Sprintf("postgres://%s:%s@%s:%s/%s?sslmode=disable",
-		user, password, host, port, name)
+	connection := url.URL{
+		Scheme:   "postgres",
+		User:     url.UserPassword(os.Getenv("DB_USER"), os.Getenv("DB_PASSWORD")),
+		Host:     net.JoinHostPort(envOrDefault("DB_HOST", "localhost"), envOrDefault("DB_PORT", "5432")),
+		Path:     "/" + os.Getenv("DB_NAME"),
+		RawQuery: "sslmode=disable",
+	}
+	return connection.String(), nil
 }
 
 func envOrDefault(name, fallback string) string {

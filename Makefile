@@ -1,15 +1,11 @@
 -include .env
 
-DB_USER ?= postgres
-DB_PASSWORD ?= 123456
-DB_NAME ?= perfumes_db
 DB_PORT ?= 5432
 DB_HOST ?= localhost
 TEST_DB_PORT ?= 5433
 export DB_USER DB_PASSWORD DB_NAME DB_PORT DB_HOST TEST_DB_PORT
 
 APP_NAME := TP_WEB
-DB_URL := postgres://$(DB_USER):$(DB_PASSWORD)@localhost:$(DB_PORT)/$(DB_NAME)?sslmode=disable
 SQLC_VERSION := v1.31.1
 TEMPL_VERSION := v0.3.960
 
@@ -18,7 +14,6 @@ TEMPL_VERSION := v0.3.960
 
 
 all: build
-
 
 run-app:
 	@sh scripts/run-app.sh

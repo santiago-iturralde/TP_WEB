@@ -71,7 +71,8 @@ func (h *ProductoHandler) crear(w http.ResponseWriter, r *http.Request) {
 		if errors.Is(err, service.ErrNombreVacio) ||
 			errors.Is(err, service.ErrCategoriaVacia) ||
 			errors.Is(err, service.ErrPrecioInvalido) ||
-			errors.Is(err, service.ErrStockNegativo) {
+			errors.Is(err, service.ErrStockNegativo) ||
+			errors.Is(err, service.ErrLongitudInvalida) {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}
@@ -128,7 +129,8 @@ func (h *ProductoHandler) actualizar(w http.ResponseWriter, r *http.Request, id 
 		if errors.Is(err, service.ErrNombreVacio) ||
 			errors.Is(err, service.ErrCategoriaVacia) ||
 			errors.Is(err, service.ErrPrecioInvalido) ||
-			errors.Is(err, service.ErrStockNegativo) {
+			errors.Is(err, service.ErrStockNegativo) ||
+			errors.Is(err, service.ErrLongitudInvalida) {
 			http.Error(w, err.Error(), http.StatusBadRequest)
 			return
 		}

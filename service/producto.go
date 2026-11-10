@@ -4,7 +4,9 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"math"
 	"strings"
+	"unicode/utf8"
 
 	db "TP_WEB/db/sqlc"
 	"TP_WEB/repository"
@@ -13,8 +15,9 @@ import (
 var (
 	ErrNombreVacio          = errors.New("el nombre del producto no puede estar vacio")
 	ErrCategoriaVacia       = errors.New("la categoria no puede estar vacia")
-	ErrPrecioInvalido       = errors.New("el precio debe ser un numero valido mayor a cero")
+	ErrPrecioInvalido       = errors.New("el precio debe ser un numero valido mayor a cero, entre 0.01 y 99999999.99 y con hasta dos decimales")
 	ErrStockNegativo        = errors.New("el stock no puede ser negativo")
+	ErrLongitudInvalida     = errors.New("Revisá las longitudes: nombre hasta 255, categoría hasta 100 y descripción hasta 1000 caracteres.")
 	ErrProductoNoEncontrado = repository.ErrProductoNoEncontrado
 )
 
@@ -43,7 +46,7 @@ type ActualizarProductoDTO struct {
 }
 
 func (s *ProductoService) Crear(ctx context.Context, dto CrearProductoDTO) (db.Producto, error) {
-	if err := validarDatosProducto(dto.Nombre, dto.Categoria, dto.Precio, dto.Stock); err != nil {
+	if err := validarDatosProducto(dto.Nombre, dto.Descripcion, dto.Categoria, dto.Precio, dto.Stock); err != nil {
 		return db.Producto{}, err
 	}
 
@@ -73,7 +76,7 @@ func (s *ProductoService) Actualizar(ctx context.Context, id int32, dto Actualiz
 		return db.Producto{}, err
 	}
 
-	if err := validarDatosProducto(dto.Nombre, dto.Categoria, dto.Precio, dto.Stock); err != nil {
+	if err := validarDatosProducto(dto.Nombre, dto.Descripcion, dto.Categoria, dto.Precio, dto.Stock); err != nil {
 		return db.Producto{}, err
 	}
 
@@ -102,14 +105,20 @@ func (s *ProductoService) Eliminar(ctx context.Context, id int32) error {
 	return s.repo.Eliminar(ctx, id)
 }
 
-func validarDatosProducto(nombre, categoria string, precio float64, stock int32) error {
+func validarDatosProducto(nombre, descripcion, categoria string, precio float64, stock int32) error {
 	if strings.TrimSpace(nombre) == "" {
 		return ErrNombreVacio
 	}
 	if strings.TrimSpace(categoria) == "" {
 		return ErrCategoriaVacia
 	}
-	if precio <= 0 {
+
+	if utf8.RuneCountInString(strings.TrimSpace(nombre)) > 255 ||
+		utf8.RuneCountInString(strings.TrimSpace(categoria)) > 100 ||
+		utf8.RuneCountInString(strings.TrimSpace(descripcion)) > 1000 {
+		return ErrLongitudInvalida
+	}
+	if math.IsNaN(precio) || math.IsInf(precio, 0) || precio < 0.01 || precio > 99999999.99 || precio != math.Round(precio*100)/100 {
 		return ErrPrecioInvalido
 	}
 	if stock < 0 {

@@ -44,7 +44,7 @@ func TestAltaProductoFormulario(t *testing.T) {
 	if res.Code != 200 || !strings.Contains(res.Body.String(), nombre) || !strings.Contains(res.Body.String(), `action="/productos"`) {
 		t.Fatalf("catálogo: %d %s", res.Code, res.Body.String())
 	}
-	for _, precio := range []string{"NaN", "abc", "-1"} {
+	for _, precio := range []string{"NaN", "Inf", "abc", "-1", "0.001", "100000000", "1.234"} {
 		campos.Set("precio_prod", precio)
 		res = enviar()
 		if res.Code != 400 || !strings.Contains(res.Body.String(), `value="`+nombre+`"`) {
