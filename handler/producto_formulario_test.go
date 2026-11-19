@@ -27,12 +27,17 @@ func TestAltaProductoFormulario(t *testing.T) {
 	enviar := func() *httptest.ResponseRecorder {
 		req := httptest.NewRequest("POST", "/productos", strings.NewReader(campos.Encode()))
 		req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+		req.Header.Set("HX-Request", "true")
 		res := httptest.NewRecorder()
 		h.Coleccion(res, req)
 		return res
 	}
 	res := enviar()
-	if res.Code != 303 || res.Header().Get("Location") != "/" {
+	if res.Code != 200 || res.Header().Get("Location") != "" ||
+		!strings.Contains(res.Header().Get("Content-Type"), "text/html") ||
+		!strings.Contains(res.Body.String(), `id="lista-productos"`) ||
+		strings.Contains(res.Body.String(), "<!doctype html>") ||
+		!strings.Contains(res.Body.String(), nombre) {
 		t.Fatalf("alta: %d %s", res.Code, res.Body.String())
 	}
 	var cantidad int

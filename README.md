@@ -1,9 +1,9 @@
-# Trabajo de Cursada - TP5: Renderizado del lado del servidor con Templ
+# Trabajo de Cursada - TP6: Interfaces reactivas con HTMX
 
-Trabajo de Programación Web, UNICEN. Esta entrega adapta el catálogo de perfumes
-del TP4 al renderizado del lado del servidor (SSR): Go obtiene los datos de
-PostgreSQL mediante sqlc y genera el HTML con Templ. El listado y el formulario
-funcionan sin JavaScript, con recargas completas de página y los estilos CSS del TP4.
+Trabajo de Programación Web, UNICEN. Esta entrega parte del catálogo renderizado
+en el servidor (SSR) con Templ y agrega HTMX para actualizar el listado de
+productos después de un alta sin recargar la página completa. Go obtiene los
+datos de PostgreSQL mediante sqlc y devuelve fragmentos HTML renderizados con Templ.
 
 ## 1. Dominio y alcance de la entrega
 
@@ -14,9 +14,10 @@ El sistema conserva cuatro entidades:
 - **Carrito:** usuario asociado y total.
 - **ProductosCarrito:** producto, carrito y cantidad de cada ítem.
 
-La interfaz del TP5 permite **listar y crear productos**. Incluye un estado de
-catálogo vacío, contador de productos y mensajes de validación. No incluye
-pantallas de carrito, edición ni eliminación de productos.
+La interfaz permite **listar, crear y borrar productos**. Incluye un estado de
+catálogo vacío, contador de productos y mensajes de validación. El alta y el
+borrado reemplazan el fragmento del listado mediante HTMX. No incluye pantallas
+de carrito ni edición de productos.
 
 Se conserva la arquitectura `handler → service → repository → sqlc → PostgreSQL`.
 Los endpoints JSON `/productos`, `/usuarios`, `/carritos` y `/productos_carrito`,
@@ -122,7 +123,7 @@ conexiones aisladas y pueden ejecutarse sin `.env`.
 ### ¿Por qué el Compose de entrega tiene valores escritos directamente?
 
 `docker-compose.delivery.yml` define el usuario `postgres`, la contraseña
-`tp5_local` y la base `perfumes_tp5` como **valores fijos**. El script de entrega
+`tp6_local` y la base `perfumes_tp6` como **valores fijos**. El script de entrega
 utiliza exactamente esos mismos valores para cargar el esquema y conectar Go.
 Esto prepara un entorno de entrega separado del desarrollo.
 
@@ -140,11 +141,11 @@ tanto al script como a Compose.
 ### Paso 1: Clonar el proyecto
 
 ```sh
-git clone --branch tp5 https://github.com/santiago-iturralde/TP_WEB.git
+git clone --branch tp6 https://github.com/santiago-iturralde/TP_WEB.git
 cd TP_WEB
 ```
 
-Si el repositorio ya está clonado, ubicarse en su carpeta y en la rama `tp5`.
+Si el repositorio ya está clonado, ubicarse en su carpeta y en la rama `tp6`.
 
 ### Paso 2: Configurar e iniciar el entorno de entrega
 
@@ -167,7 +168,7 @@ No es necesario crear tablas manualmente; este modo utiliza la conexión aislada
 de entrega.
 `scripts/run-app.sh` realiza lo siguiente:
 
-1. Elimina los contenedores y volúmenes anteriores del proyecto Compose `tpweb-tp5`.
+1. Elimina los contenedores y volúmenes anteriores del proyecto Compose `tpweb-tp6`.
 2. Genera sqlc y Templ y compila el ejecutable en `tmp/TP_WEB`.
 3. Inicia PostgreSQL 15 y espera a que esté disponible.
 4. Carga `db/schema/schema.sql`, deteniéndose si falla.
@@ -190,9 +191,10 @@ En ese caso, abrir [http://localhost:8081/](http://localhost:8081/).
 
 1. Verificar el formulario y el mensaje de catálogo vacío.
 2. Completar nombre, precio, stock y categoría; la descripción es opcional.
-3. Enviar el formulario: el producto aparece en el catálogo después de la redirección.
+3. Enviar el formulario: HTMX actualiza el catálogo sin recargar la página completa.
 4. Recargar la página: el producto sigue visible y no se repite el alta.
 5. Agregar otro producto y comprobar la lista y el contador.
+6. Presionar **Borrar** en una tarjeta: el producto desaparece y el listado se actualiza sin recargar.
 
 El servidor valida los datos además de las restricciones del navegador. Ante
 valores de campos inválidos, devuelve HTML con estado 400, un mensaje y los
@@ -274,7 +276,7 @@ inicializado. No borrar un volumen con datos que se quieran conservar.
 | Entorno | Comando | Archivo Compose | Proyecto Compose | Puerto PostgreSQL por defecto | Puerto HTTP por defecto | Datos |
 | --- | --- | --- | --- | --- | --- | --- |
 | Desarrollo | `make run` | `docker-compose.yml` | `tp_web` | 5432 (`DB_PORT`) | 8080 (`HTTP_PORT`) | Se conservan al detener. |
-| Entrega | `make run-app` | `docker-compose.delivery.yml` | `tpweb-tp5` | 5434 (`DELIVERY_DB_PORT`) | 8080 (`HTTP_PORT`) | Se eliminan al finalizar. |
+| Entrega | `make run-app` | `docker-compose.delivery.yml` | `tpweb-tp6` | 5434 (`DELIVERY_DB_PORT`) | 8080 (`HTTP_PORT`) | Se eliminan al finalizar. |
 | Pruebas Go | `make test` | `docker-compose.test.yml` | `tpweb-test` | 5433 (`TEST_DB_PORT`) | No inicia servidor HTTP externo. | Se eliminan al finalizar. |
 | Pruebas API | `make test-api` | `docker-compose.test.yml` | `tpweb-test` | 5433 (`TEST_DB_PORT`) | 18081 (`TEST_HTTP_PORT`) | Se eliminan al finalizar. |
 
@@ -291,8 +293,9 @@ defecto el mismo puerto HTTP; elegir otro si se necesitan ambos servidores.
 ## 7. Templ, arquitectura y flujo SSR
 
 Templ permite escribir componentes de HTML con datos y lógica de Go en archivos
-`.templ`. En esta aplicación, el layout contiene la estructura general; el
-formulario y el listado son componentes separados, reunidos por `IndexPage`.
+`.templ`. El layout contiene la estructura general; el formulario y el listado
+son componentes separados, reunidos por `IndexPage`. HTMX se carga desde el
+layout y envía el formulario como una petición parcial.
 
 ```text
 GET /
@@ -309,13 +312,21 @@ POST /productos (application/x-www-form-urlencoded)
   -> ParseForm y conversión de los campos numéricos
   -> validación y ProductoService.Crear
   -> repositorio -> SQLc -> INSERT en PostgreSQL
-  -> 303 See Other, Location: /
-  -> el navegador hace GET / y recibe el catálogo actualizado
+  -> ProductoService.Listar -> views.ProductList
+  -> 200 OK con el fragmento HTML #lista-productos
+  -> HTMX reemplaza el listado en el DOM
 ```
 
-Este último recorrido es **Post/Redirect/Get (PRG)**. El HTML lo genera el
-servidor; el navegador aplica CSS y presenta la página. No se utiliza `fetch`,
-JavaScript ni una API JSON para construir la interfaz.
+```text
+DELETE /productos/{id} (petición HTMX)
+  -> ProductoService.Eliminar
+  -> 200 OK con cuerpo vacío
+  -> HTMX reemplaza la tarjeta objetivo con nada y la quita del DOM
+```
+
+La página inicial y el fragmento actualizado se renderizan en el servidor. HTMX
+realiza la petición y reemplaza el HTML objetivo; no se usa `fetch` ni código
+JavaScript propio para construir el catálogo.
 
 Los `.templ` son fuentes editables. `templ generate` produce los `_templ.go`,
 que Go compila con la aplicación; no se editan manualmente ni se generan por
@@ -333,9 +344,11 @@ make check-delivery
 ```
 
 Ejecuta el ciclo de preparación y limpieza de entrega y `scripts/check-ssr.sh`.
-Comprueba catálogo vacío, CSS, formulario sin JavaScript, alta HTTP, redirección
-303, producto en HTML, escape de texto, rechazo de un precio inválido y
-conservación de campos. También verifica que las pantallas retiradas no se sirvan.
+Comprueba catálogo vacío, CSS, carga de HTMX, alta HTTP con respuesta de fragmento,
+escape de texto, rechazo de un precio inválido y conservación de campos. Verifica
+que cada tarjeta tenga el borrado HTMX configurado y que el DELETE HTMX responda
+200 vacío; después confirma que el catálogo quede vacío. También verifica que las
+pantallas retiradas no se sirvan.
 Al terminar elimina la base utilizada.
 
 ### Pruebas Go con PostgreSQL real
@@ -375,7 +388,7 @@ TEST_HTTP_PORT=18082 make test-api
 | `views/entity_list.templ` | Tarjetas, contador y estado vacío a partir de `[]db.Producto`. |
 | `views/entity_form.templ` | Formulario clásico y mensajes de validación. |
 | `handler/producto.go` | GET principal y renderizado; despacho del POST según Content-Type. |
-| `handler/producto_formulario.go` | Lectura de campos, conversiones y PRG. |
+| `handler/producto_formulario.go` | Lectura de campos, conversiones y respuesta HTML parcial del alta. |
 | `service/` | Validaciones y reglas de negocio. |
 | `repository/` | Acceso a datos mediante consultas SQLc. |
 | `db/schema/`, `db/queries/`, `db/sqlc/` | Esquema, consultas SQL y código generado. |
@@ -392,8 +405,10 @@ TEST_HTTP_PORT=18082 make test-api
 | Método y ruta | Comportamiento |
 | --- | --- |
 | `GET /` | Devuelve la página completa con formulario y catálogo. |
-| `POST /productos` con formulario | Valida, guarda y redirige a `/` con 303. |
+| `POST /productos` con formulario | Valida, guarda y devuelve el fragmento actualizado del listado para HTMX. |
 | `POST /productos` con JSON | Conserva el alta de la API con respuesta JSON. |
+| `DELETE /productos/{id}` con HTMX | Elimina el producto y devuelve `200 OK` vacío para quitar su tarjeta del DOM. |
+| `DELETE /productos/{id}` sin HTMX | Conserva la respuesta HTTP de la API `204 No Content`. |
 | `GET /productos` | Conserva el listado JSON de la API. |
 | `GET /static/estilos.css` | Sirve la hoja de estilos. |
 

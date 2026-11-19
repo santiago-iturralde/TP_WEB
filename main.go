@@ -85,7 +85,7 @@ func main() {
 	mux.HandleFunc("GET /{$}", productoHandler.Index)
 
 	port := ":" + envOrDefault("HTTP_PORT", "8080")
-	slog.Info("Servidor TP5 SSR iniciado", "url", "http://localhost"+port+"/")
+	slog.Info("Servidor TP6 con HTMX iniciado", "url", "http://localhost"+port+"/")
 
 	if err := http.ListenAndServe(port, mux); err != nil {
 		log.Fatalf("Error al iniciar el servidor: %v", err)

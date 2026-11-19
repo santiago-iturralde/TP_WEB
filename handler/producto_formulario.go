@@ -10,7 +10,7 @@ import (
 	"TP_WEB/views"
 )
 
-// crearFormulario recibe campos HTML, guarda con el servicio y aplica Post/Redirect/Get.
+// crearFormulario recibe campos HTML y devuelve la lista actualizada como fragmento HTML.
 func (h *ProductoHandler) crearFormulario(w http.ResponseWriter, r *http.Request) {
 	r.Body = http.MaxBytesReader(w, r.Body, 64<<10)
 	if err := r.ParseForm(); err != nil {
@@ -45,5 +45,5 @@ func (h *ProductoHandler) crearFormulario(w http.ResponseWriter, r *http.Request
 		h.renderIndex(w, r, http.StatusInternalServerError, data, "No se pudo guardar el perfume. Intentá nuevamente.")
 		return
 	}
-	http.Redirect(w, r, "/", http.StatusSeeOther)
+	h.renderProductList(w, r)
 }

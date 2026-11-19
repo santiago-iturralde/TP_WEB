@@ -6,7 +6,7 @@ import (
 )
 
 templ ProductList(productos []db.Producto) {
-	<section class="seccion-catalogo" aria-labelledby="titulo-catalogo">
+	<section id="lista-productos" class="seccion-catalogo" aria-labelledby="titulo-catalogo">
 		<div class="catalogo-encabezado">
 			<div>
 				<p class="sobrelinea">NUESTRA SELECCIÓN</p>
@@ -20,7 +20,7 @@ templ ProductList(productos []db.Producto) {
 				}
 			</span>
 		</div>
-		<div id="lista-productos" class="grilla-productos">
+		<div class="grilla-productos">
 			if len(productos) == 0 {
 				<div class="estado-vacio">
 					<strong>Todavía no hay perfumes</strong>
@@ -31,6 +31,14 @@ templ ProductList(productos []db.Producto) {
 				<article class="tarjeta-producto">
 					<div class="tarjeta-superior">
 						<span class="etiqueta-categoria">{ producto.Categoria }</span>
+						<button
+							class="boton-borrar"
+							type="button"
+							hx-delete={ fmt.Sprintf("/productos/%d", producto.IDProducto) }
+							hx-target="closest article"
+							hx-swap="outerHTML"
+							aria-label={ fmt.Sprintf("Borrar %s", producto.NombreProd) }
+						>Borrar</button>
 					</div>
 					<h3>{ producto.NombreProd }</h3>
 					<p class="descripcion-producto">

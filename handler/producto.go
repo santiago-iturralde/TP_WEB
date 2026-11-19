@@ -154,6 +154,11 @@ func (h *ProductoHandler) eliminar(w http.ResponseWriter, r *http.Request, id in
 		return
 	}
 
+	if r.Header.Get("HX-Request") == "true" {
+		w.WriteHeader(http.StatusOK)
+		return
+	}
+
 	w.WriteHeader(http.StatusNoContent)
 }
 
@@ -178,4 +183,21 @@ func (h *ProductoHandler) renderIndex(w http.ResponseWriter, r *http.Request, st
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.WriteHeader(status)
 	_, _ = page.WriteTo(w)
+}
+
+func (h *ProductoHandler) renderProductList(w http.ResponseWriter, r *http.Request) {
+	productos, err := h.service.Listar(r.Context())
+	if err != nil {
+		http.Error(w, "No se pudo actualizar el catálogo.", http.StatusInternalServerError)
+		return
+	}
+
+	var fragmento bytes.Buffer
+	if err := views.ProductList(productos).Render(r.Context(), &fragmento); err != nil {
+		http.Error(w, "No se pudo generar el catálogo.", http.StatusInternalServerError)
+		return
+	}
+	w.Header().Set("Content-Type", "text/html; charset=utf-8")
+	w.WriteHeader(http.StatusOK)
+	_, _ = fragmento.WriteTo(w)
 }

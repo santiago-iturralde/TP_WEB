@@ -8,7 +8,7 @@ for tool in go make docker curl; do
     command -v "$tool" >/dev/null || { echo "Falta instalar $tool" >&2; exit 1; }
 done
 docker compose version >/dev/null
-compose() { docker compose -p tpweb-tp5 -f docker-compose.delivery.yml "$@"; }
+compose() { docker compose -p tpweb-tp6 -f docker-compose.delivery.yml "$@"; }
 cleanup() {
     status=$?
     trap - EXIT HUP INT TERM
@@ -16,7 +16,7 @@ cleanup() {
         kill "$APP_PID" 2>/dev/null || true
         wait "$APP_PID" 2>/dev/null || true
     fi
-    echo "Eliminando contenedores y volumen de la entrega TP5..."
+    echo "Eliminando contenedores y volumen de la entrega TP6..."
     compose down -v --remove-orphans || { [ "$status" -ne 0 ] || status=1; }
     exit "$status"
 }
@@ -28,9 +28,9 @@ trap 'exit 129' HUP
 compose down -v --remove-orphans
 make build
 compose up -d --wait --wait-timeout 60
-compose exec -T database psql -v ON_ERROR_STOP=1 -U postgres -d perfumes_tp5 < db/schema/schema.sql
+compose exec -T database psql -v ON_ERROR_STOP=1 -U postgres -d perfumes_tp6 < db/schema/schema.sql
 
-export DATABASE_URL="postgres://postgres:tp5_local@127.0.0.1:${DELIVERY_DB_PORT:-5434}/perfumes_tp5?sslmode=disable"
+export DATABASE_URL="postgres://postgres:tp6_local@127.0.0.1:${DELIVERY_DB_PORT:-5434}/perfumes_tp6?sslmode=disable"
 export HTTP_PORT="${HTTP_PORT:-8080}"
 export BASE_URL="http://127.0.0.1:$HTTP_PORT"
 ./tmp/TP_WEB &
@@ -51,6 +51,6 @@ done
 if [ "${1:-}" = --check ]; then
     sh scripts/check-ssr.sh
 else
-    echo "TP5 listo en $BASE_URL/ — Ctrl+C detiene la aplicación y elimina los datos de esta ejecución."
+    echo "TP6 listo en $BASE_URL/ — Ctrl+C detiene la aplicación y elimina los datos de esta ejecución."
     wait "$APP_PID"
 fi

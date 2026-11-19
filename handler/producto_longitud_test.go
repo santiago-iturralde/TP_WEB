@@ -43,6 +43,9 @@ func TestLongitudProductoCompartida(t *testing.T) {
 				}
 				req := httptest.NewRequest(metodo, "/productos", strings.NewReader(string(body)))
 				req.Header.Set("Content-Type", contentType)
+				if formulario {
+					req.Header.Set("HX-Request", "true")
+				}
 				res := httptest.NewRecorder()
 				if metodo == "PUT" {
 					req.SetPathValue("id", fmt.Sprint(id))
@@ -65,7 +68,7 @@ func TestLongitudProductoCompartida(t *testing.T) {
 				formulario bool
 				estado     int
 			}{
-				{"PUT", false, 200}, {"POST", true, 303},
+				{"PUT", false, 200}, {"POST", true, 200},
 			} {
 				res = enviar(entrada.metodo, entrada.formulario, valido, creado.IDProducto)
 				if res.Code != entrada.estado {

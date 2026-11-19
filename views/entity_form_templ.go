@@ -38,7 +38,7 @@ func ProductForm(data ProductFormData, message string) templ.Component {
 			templ_7745c5c3_Var1 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<aside class=\"panel-formulario\" aria-labelledby=\"titulo-formulario\"><p class=\"sobrelinea\">NUEVA FRAGANCIA</p><h2 id=\"titulo-formulario\">Agregar un producto</h2><p class=\"ayuda-formulario\">Completá los datos para sumar un perfume al catálogo.</p><form id=\"formulario-producto\" method=\"post\" action=\"/productos\"><label for=\"nombre_prod\">Nombre del perfume</label> <input id=\"nombre_prod\" name=\"nombre_prod\" value=\"")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<aside class=\"panel-formulario\" aria-labelledby=\"titulo-formulario\"><p class=\"sobrelinea\">NUEVA FRAGANCIA</p><h2 id=\"titulo-formulario\">Agregar un producto</h2><p class=\"ayuda-formulario\">Completá los datos para sumar un perfume al catálogo.</p><form id=\"formulario-producto\" method=\"post\" action=\"/productos\" hx-post=\"/productos\" hx-target=\"#lista-productos\" hx-swap=\"outerHTML\"><label for=\"nombre_prod\">Nombre del perfume</label> <input id=\"nombre_prod\" name=\"nombre_prod\" value=\"")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}

@@ -14,7 +14,7 @@ templ ProductForm(data ProductFormData, message string) {
 		<p class="sobrelinea">NUEVA FRAGANCIA</p>
 		<h2 id="titulo-formulario">Agregar un producto</h2>
 		<p class="ayuda-formulario">Completá los datos para sumar un perfume al catálogo.</p>
-		<form id="formulario-producto" method="post" action="/productos">
+		<form id="formulario-producto" method="post" action="/productos" hx-post="/productos" hx-target="#lista-productos" hx-swap="outerHTML">
 			<label for="nombre_prod">Nombre del perfume</label>
 			<input id="nombre_prod" name="nombre_prod" value={ data.Nombre } type="text" maxlength="255" placeholder="Ej.: Chanel No. 5" required/>
 			<label for="descripcion_prod">Descripción</label>
